@@ -1089,6 +1089,160 @@ function ExplorePath({ onBack }) {
 
 
 
+// ── Google Maps loader ────────────────────────────────────────────────────────
+const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+
+function loadGoogleMaps() {
+  if (window.google?.maps) return Promise.resolve();
+  if (window._gmapsPromise) return window._gmapsPromise;
+  window._gmapsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&libraries=places`;
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return window._gmapsPromise;
+}
+
+// ── Neighborhood Google Map with pins ────────────────────────────────────────
+function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const markersRef = useRef([]);
+  const [mapError, setMapError] = useState(false);
+
+  useEffect(() => {
+    loadGoogleMaps()
+      .then(() => {
+        if (!mapRef.current) return;
+        const center = { lat: neighborhood.lat, lng: neighborhood.lng };
+        mapInstance.current = new window.google.maps.Map(mapRef.current, {
+          center,
+          zoom: 14,
+          styles: [
+            { elementType:"geometry", stylers:[{ color: city.bg.replace("#","") === "080A0F" ? "#0a0d18" : city.bg }] },
+            { elementType:"labels.text.fill", stylers:[{ color:"#9e9e9e" }] },
+            { elementType:"labels.text.stroke", stylers:[{ color:"#1a1a2e" }] },
+            { featureType:"road", elementType:"geometry", stylers:[{ color:"#1c1c2e" }] },
+            { featureType:"road", elementType:"geometry.stroke", stylers:[{ color:"#212121" }] },
+            { featureType:"road.highway", elementType:"geometry", stylers:[{ color:"#2c2c3e" }] },
+            { featureType:"water", elementType:"geometry", stylers:[{ color:"#050810" }] },
+            { featureType:"poi", elementType:"labels", stylers:[{ visibility:"off" }] },
+            { featureType:"transit", stylers:[{ visibility:"off" }] },
+          ],
+          disableDefaultUI: true,
+          zoomControl: true,
+          zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
+        });
+
+        // Neighborhood center marker
+        new window.google.maps.Marker({
+          position: center,
+          map: mapInstance.current,
+          title: neighborhood.name,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: city.accent,
+            fillOpacity: 0.9,
+            strokeColor: "#fff",
+            strokeWeight: 2,
+          },
+        });
+      })
+      .catch(() => setMapError(true));
+  }, [neighborhood.lat, neighborhood.lng]);
+
+  // Add/update place pins when places or activeSection changes
+  useEffect(() => {
+    if (!mapInstance.current || !window.google?.maps) return;
+    markersRef.current.forEach(m => m.setMap(null));
+    markersRef.current = [];
+    if (!places || places.length === 0) return;
+
+    const sectionEmojis = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿" };
+    const service = new window.google.maps.places.PlacesService(mapInstance.current);
+    const bounds = new window.google.maps.LatLngBounds();
+    bounds.extend({ lat: neighborhood.lat, lng: neighborhood.lng });
+
+    places.slice(0, 6).forEach((place) => {
+      const req = { query: `${place.name} ${neighborhood.name} ${city.name}`, fields: ["geometry","name","place_id"] };
+      service.findPlaceFromQuery(req, (results, status) => {
+        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.geometry) return;
+        const pos = results[0].geometry.location;
+        bounds.extend(pos);
+        const marker = new window.google.maps.Marker({
+          position: pos,
+          map: mapInstance.current,
+          title: place.name,
+          label: {
+            text: sectionEmojis[activeSection] || "📍",
+            fontSize: "14px",
+          },
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 14,
+            fillColor: city.accent,
+            fillOpacity: place.must ? 1 : 0.7,
+            strokeColor: place.must ? "#fff" : city.accentLight,
+            strokeWeight: place.must ? 2 : 1,
+          },
+        });
+        const iw = new window.google.maps.InfoWindow({
+          content: `<div style="font-family:sans-serif;padding:4px 2px;color:#111"><strong style="font-size:13px">${place.name}</strong>${place.must ? '<span style="margin-left:6px;background:#e67e22;color:#fff;font-size:9px;padding:1px 5px;border-radius:2px">Must Visit</span>' : ""}<br/><span style="font-size:12px;color:#555">${place.desc||""}</span></div>`,
+        });
+        marker.addListener("click", () => iw.open(mapInstance.current, marker));
+        markersRef.current.push(marker);
+        if (markersRef.current.length > 1) mapInstance.current.fitBounds(bounds);
+      });
+    });
+  }, [places, activeSection]);
+
+  if (mapError) return null;
+  return (
+    <div style={{ position:"relative", borderRadius:0, overflow:"hidden", border:`1px solid ${city.cardBorder}` }}>
+      <div ref={mapRef} style={{ width:"100%", height:"320px" }} />
+      <div style={{ position:"absolute", top:"10px", left:"12px", background:`${city.bg}dd`, border:`1px solid ${city.cardBorder}`, padding:"5px 10px", backdropFilter:"blur(8px)", fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.accentLight }}>
+        {neighborhood.name} · Live Map
+      </div>
+    </div>
+  );
+}
+
+// ── Place Photo Card ──────────────────────────────────────────────────────────
+function PlacePhoto({ placeName, neighborhood, city, style }) {
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [tried, setTried] = useState(false);
+  const divRef = useRef(null);
+
+  useEffect(() => {
+    if (!GMAPS_KEY || tried) return;
+    setTried(true);
+    loadGoogleMaps().then(() => {
+      if (!divRef.current) return;
+      const svc = new window.google.maps.places.PlacesService(divRef.current);
+      svc.findPlaceFromQuery(
+        { query: `${placeName} ${neighborhood} ${city}`, fields: ["photos","place_id"] },
+        (results, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length) {
+            setPhotoUrl(results[0].photos[0].getUrl({ maxWidth: 400, maxHeight: 280 }));
+          }
+        }
+      );
+    }).catch(() => {});
+  }, [placeName]);
+
+  return (
+    <div ref={divRef} style={style}>
+      {photoUrl && (
+        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity:0.85 }} />
+      )}
+    </div>
+  );
+}
+
 // ── AI-Powered Neighborhood Page ─────────────────────────────────────────────
 const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿" };
 const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space" };
@@ -1204,6 +1358,18 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
         </div>
       )}
 
+      {/* Map */}
+      {neighborhood.lat && (
+        <div style={{ maxWidth:"860px", margin:"0 auto", padding:"20px 32px 0" }}>
+          <NeighborhoodGoogleMap
+            neighborhood={neighborhood}
+            city={city}
+            places={data ? (data[activeSection] || []) : []}
+            activeSection={activeSection}
+          />
+        </div>
+      )}
+
       {/* Tabs */}
       {data && sections.length > 0 && (
         <>
@@ -1221,16 +1387,24 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
             <div style={{ display:"grid", gap:"9px" }}>
               {(data[activeSection]||[]).map((item,i) => (
                 <div key={i}
-                  style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, padding:"16px 18px", transition:"transform 0.15s", position:"relative" }}
+                  style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
                   onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
                   onMouseLeave={e => e.currentTarget.style.transform="none"}
                 >
-                  {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase" }}>Must Visit</div>}
-                  <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0 }}>
-                    <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
-                    {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+                  <PlacePhoto
+                    placeName={item.name}
+                    neighborhood={neighborhood.name}
+                    city={city.name}
+                    style={{ width:"100%", height:"140px", background:city.card, overflow:"hidden", position:"relative" }}
+                  />
+                  <div style={{ padding:"14px 18px" }}>
+                    {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
+                    <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0 }}>
+                      <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
+                      {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+                    </div>
+                    {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
                   </div>
-                  {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
                 </div>
               ))}
             </div>
