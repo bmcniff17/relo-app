@@ -1224,11 +1224,19 @@ function PlacePhoto({ placeName, neighborhood, city, style }) {
       if (!divRef.current) return;
       const svc = new window.google.maps.places.PlacesService(divRef.current);
       svc.findPlaceFromQuery(
-        { query: `${placeName} ${neighborhood} ${city}`, fields: ["photos","place_id"] },
+        { query: `${placeName} ${neighborhood} ${city}`, fields: ["place_id"] },
         (results, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length) {
-            setPhotoUrl(results[0].photos[0].getUrl({ maxWidth: 400, maxHeight: 280 }));
-          }
+          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.place_id) return;
+          svc.getDetails(
+            { placeId: results[0].place_id, fields: ["photos"] },
+            (place, detailStatus) => {
+              if (detailStatus !== window.google.maps.places.PlacesServiceStatus.OK) return;
+              const photos = place?.photos;
+              if (!photos?.length) return;
+              const best = photos.reduce((a, b) => (b.width > a.width ? b : a), photos[0]);
+              setPhotoUrl(best.getUrl({ maxWidth: 800, maxHeight: 500 }));
+            }
+          );
         }
       );
     }).catch(() => {});
@@ -1237,7 +1245,7 @@ function PlacePhoto({ placeName, neighborhood, city, style }) {
   return (
     <div ref={divRef} style={style}>
       {photoUrl && (
-        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity:0.85 }} />
+        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity:0.9 }} />
       )}
     </div>
   );
