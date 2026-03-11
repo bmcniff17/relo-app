@@ -1214,12 +1214,11 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
 // ── Place Photo Card ──────────────────────────────────────────────────────────
 function PlacePhoto({ placeName, neighborhood, city, style }) {
   const [photoUrl, setPhotoUrl] = useState(null);
-  const [tried, setTried] = useState(false);
   const divRef = useRef(null);
 
   useEffect(() => {
-    if (!GMAPS_KEY || tried) return;
-    setTried(true);
+    if (!GMAPS_KEY) return;
+    setPhotoUrl(null); // reset when place changes
     loadGoogleMaps().then(() => {
       if (!divRef.current) return;
       const svc = new window.google.maps.places.PlacesService(divRef.current);
@@ -1233,8 +1232,11 @@ function PlacePhoto({ placeName, neighborhood, city, style }) {
               if (detailStatus !== window.google.maps.places.PlacesServiceStatus.OK) return;
               const photos = place?.photos;
               if (!photos?.length) return;
-              const best = photos.reduce((a, b) => (b.width > a.width ? b : a), photos[0]);
-              setPhotoUrl(best.getUrl({ maxWidth: 800, maxHeight: 500 }));
+              // Pick widest photo for best quality, avoid portrait crops
+              const landscape = photos.filter(p => p.width >= p.height);
+              const pool = landscape.length ? landscape : photos;
+              const best = pool.reduce((a, b) => (b.width > a.width ? b : a), pool[0]);
+              setPhotoUrl(best.getUrl({ maxWidth: 1200, maxHeight: 400 }));
             }
           );
         }
@@ -1245,7 +1247,7 @@ function PlacePhoto({ placeName, neighborhood, city, style }) {
   return (
     <div ref={divRef} style={style}>
       {photoUrl && (
-        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity:0.9 }} />
+        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block", opacity:0.9 }} />
       )}
     </div>
   );
