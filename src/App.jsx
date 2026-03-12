@@ -1109,20 +1109,27 @@ function loadGoogleMaps() {
 // ── Neighborhood Google Map with pins ────────────────────────────────────────
 function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
   const mapRef = useRef(null);
+  const serviceRef = useRef(null); // separate div for PlacesService
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const [mapError, setMapError] = useState(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     loadGoogleMaps()
       .then(() => {
-        if (!mapRef.current) return;
+        if (!mapRef.current || !isMounted.current) return;
         const center = { lat: neighborhood.lat, lng: neighborhood.lng };
         mapInstance.current = new window.google.maps.Map(mapRef.current, {
           center,
           zoom: 14,
           styles: [
-            { elementType:"geometry", stylers:[{ color: city.bg.replace("#","") === "080A0F" ? "#0a0d18" : city.bg }] },
+            { elementType:"geometry", stylers:[{ color:"#0d1117" }] },
             { elementType:"labels.text.fill", stylers:[{ color:"#9e9e9e" }] },
             { elementType:"labels.text.stroke", stylers:[{ color:"#1a1a2e" }] },
             { featureType:"road", elementType:"geometry", stylers:[{ color:"#1c1c2e" }] },
@@ -1136,7 +1143,6 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
           zoomControl: true,
           zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
         });
-
         // Neighborhood center marker
         new window.google.maps.Marker({
           position: center,
@@ -1152,53 +1158,70 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
           },
         });
       })
-      .catch(() => setMapError(true));
+      .catch(() => { if (isMounted.current) setMapError(true); });
   }, [neighborhood.lat, neighborhood.lng]);
 
   // Add/update place pins when places or activeSection changes
   useEffect(() => {
-    if (!mapInstance.current || !window.google?.maps) return;
-    markersRef.current.forEach(m => m.setMap(null));
+    if (!mapInstance.current || !window.google?.maps || !isMounted.current) return;
+    // Safely clear old markers
+    markersRef.current.forEach(m => { try { m.setMap(null); } catch(e) {} });
     markersRef.current = [];
     if (!places || places.length === 0) return;
 
-    const sectionEmojis = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿" };
-    const service = new window.google.maps.places.PlacesService(mapInstance.current);
+    // Use a dedicated hidden div for PlacesService to avoid DOM conflicts
+    if (!serviceRef.current) {
+      serviceRef.current = document.createElement("div");
+      document.body.appendChild(serviceRef.current);
+    }
+    const service = new window.google.maps.places.PlacesService(serviceRef.current);
     const bounds = new window.google.maps.LatLngBounds();
     bounds.extend({ lat: neighborhood.lat, lng: neighborhood.lng });
 
-    places.slice(0, 6).forEach((place) => {
-      const req = { query: `${place.name} ${neighborhood.name} ${city.name}`, fields: ["geometry","name","place_id"] };
+    places.slice(0, 5).forEach((place) => {
+      const req = { query: `${place.name} ${neighborhood.name} ${city.name}`, fields: ["geometry","name"] };
       service.findPlaceFromQuery(req, (results, status) => {
+        if (!isMounted.current) return;
         if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.geometry) return;
         const pos = results[0].geometry.location;
         bounds.extend(pos);
-        const marker = new window.google.maps.Marker({
-          position: pos,
-          map: mapInstance.current,
-          title: place.name,
-          label: {
-            text: sectionEmojis[activeSection] || "📍",
-            fontSize: "14px",
-          },
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 14,
-            fillColor: city.accent,
-            fillOpacity: place.must ? 1 : 0.7,
-            strokeColor: place.must ? "#fff" : city.accentLight,
-            strokeWeight: place.must ? 2 : 1,
-          },
-        });
-        const iw = new window.google.maps.InfoWindow({
-          content: `<div style="font-family:sans-serif;padding:4px 2px;color:#111"><strong style="font-size:13px">${place.name}</strong>${place.must ? '<span style="margin-left:6px;background:#e67e22;color:#fff;font-size:9px;padding:1px 5px;border-radius:2px">Must Visit</span>' : ""}<br/><span style="font-size:12px;color:#555">${place.desc||""}</span></div>`,
-        });
-        marker.addListener("click", () => iw.open(mapInstance.current, marker));
-        markersRef.current.push(marker);
-        if (markersRef.current.length > 1) mapInstance.current.fitBounds(bounds);
+        try {
+          const marker = new window.google.maps.Marker({
+            position: pos,
+            map: mapInstance.current,
+            title: place.name,
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: city.accent,
+              fillOpacity: place.must ? 1 : 0.75,
+              strokeColor: "#fff",
+              strokeWeight: 1.5,
+            },
+          });
+          const iw = new window.google.maps.InfoWindow({
+            content: `<div style="font-family:sans-serif;padding:4px 2px;color:#111"><strong style="font-size:13px">${place.name}</strong>${place.must ? '<span style="margin-left:6px;background:#e67e22;color:#fff;font-size:9px;padding:1px 5px;border-radius:2px">Must Visit</span>' : ""}<br/><span style="font-size:12px;color:#555">${place.desc||""}</span></div>`,
+          });
+          marker.addListener("click", () => iw.open(mapInstance.current, marker));
+          markersRef.current.push(marker);
+          if (markersRef.current.length > 1 && isMounted.current) {
+            mapInstance.current.fitBounds(bounds);
+          }
+        } catch(e) {}
       });
     });
   }, [places, activeSection]);
+
+  // Cleanup service div on unmount
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach(m => { try { m.setMap(null); } catch(e) {} });
+      if (serviceRef.current) {
+        try { document.body.removeChild(serviceRef.current); } catch(e) {}
+        serviceRef.current = null;
+      }
+    };
+  }, []);
 
   if (mapError) return null;
   return (
@@ -1320,12 +1343,6 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
   }, [neighborhood.name, city.id]);
 
   const sections = data ? Object.keys(SECTION_LABELS).filter(s => data[s]?.length > 0) : [];
-  // Safety: if activeSection has no data in new load, reset to first available
-  useEffect(() => {
-    if (sections.length > 0 && !sections.includes(activeSection)) {
-      setActiveSection(sections[0]);
-    }
-  }, [sections.join(",")]);
 
   return (
     <div style={{ minHeight:"100vh", background:city.bg, fontFamily:city.bodyFont, color:city.textPrimary, opacity:v?1:0, transition:"opacity 0.5s" }}>
@@ -1411,7 +1428,7 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
           <div style={{ maxWidth:"860px", margin:"0 auto", padding:"24px 32px 80px" }}>
             <div style={{ display:"grid", gap:"9px" }}>
               {(data[activeSection]||[]).map((item,i) => (
-                <div key={`${activeSection}-${i}`}
+                <div key={i}
                   style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
                   onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
                   onMouseLeave={e => e.currentTarget.style.transform="none"}
