@@ -1107,9 +1107,10 @@ function loadGoogleMaps() {
 }
 
 // ── Neighborhood Google Map ──────────────────────────────────────────────────
-function NeighborhoodGoogleMap({ neighborhood, city }) {
+function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
+  const selectedMarkerRef = useRef(null);
   const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
@@ -1152,12 +1153,52 @@ function NeighborhoodGoogleMap({ neighborhood, city }) {
       .catch(() => setMapError(true));
   }, [neighborhood.lat, neighborhood.lng]);
 
+  // Drop a pin when a place is selected via geocoding
+  useEffect(() => {
+    if (!mapInstance.current || !window.google?.maps) return;
+    if (selectedMarkerRef.current) {
+      try { selectedMarkerRef.current.setMap(null); } catch(e) {}
+      selectedMarkerRef.current = null;
+    }
+    if (!selectedPlace) {
+      mapInstance.current.setCenter({ lat: neighborhood.lat, lng: neighborhood.lng });
+      mapInstance.current.setZoom(14);
+      return;
+    }
+    // Use Geocoding API to find place coords
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: `${selectedPlace.name}, ${neighborhood.name}, ${city.name}` }, (results, status) => {
+      if (status !== "OK" || !results?.[0]?.geometry) return;
+      const pos = results[0].geometry.location;
+      mapInstance.current.setCenter(pos);
+      mapInstance.current.setZoom(16);
+      selectedMarkerRef.current = new window.google.maps.Marker({
+        position: pos,
+        map: mapInstance.current,
+        title: selectedPlace.name,
+        animation: window.google.maps.Animation.DROP,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 13,
+          fillColor: "#fff",
+          fillOpacity: 1,
+          strokeColor: city.accent,
+          strokeWeight: 3,
+        },
+      });
+      const iw = new window.google.maps.InfoWindow({
+        content: `<div style="font-family:sans-serif;padding:4px;color:#111"><strong>${selectedPlace.name}</strong></div>`,
+      });
+      iw.open(mapInstance.current, selectedMarkerRef.current);
+    });
+  }, [selectedPlace]);
+
   if (mapError) return null;
   return (
     <div style={{ position:"relative", borderRadius:0, overflow:"hidden", border:`1px solid ${city.cardBorder}` }}>
       <div ref={mapRef} style={{ width:"100%", height:"320px" }} />
       <div style={{ position:"absolute", top:"10px", left:"12px", background:`${city.bg}dd`, border:`1px solid ${city.cardBorder}`, padding:"5px 10px", backdropFilter:"blur(8px)", fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.accentLight }}>
-        {neighborhood.name} · Live Map
+        {selectedPlace ? `📍 ${selectedPlace.name}` : `${neighborhood.name} · Live Map`}
       </div>
     </div>
   );
@@ -1209,6 +1250,140 @@ function PlacePhoto({ placeName, placeType, neighborhood, city, style }) {
       {photoUrl && (
         <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block", opacity:0.88 }} />
       )}
+    </div>
+  );
+}
+
+// ── Place Detail Panel (inline expanded) ─────────────────────────────────────
+const detailCache = {};
+
+function PlaceDetailPanel({ item, placeType, neighborhood, city, onClose }) {
+  const [detail, setDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(true);
+  const [photos, setPhotos] = useState([]);
+  const [activePhoto, setActivePhoto] = useState(0);
+
+  const cacheKey = `${item.name}-${city.name}`;
+
+  useEffect(() => {
+    // Fetch multiple Unsplash photos
+    if (!UNSPLASH_KEY) return;
+    const typeMap = {
+      food:"restaurant interior food",bars:"bar interior cocktails",
+      coffee:"coffee shop interior",shopping:"boutique shop interior",
+      gyms:"gym fitness studio",landmarks:"landmark architecture exterior",parks:"park nature outdoor"
+    };
+    const q = `${typeMap[placeType]||"restaurant"} ${city.name}`;
+    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&count=4&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setPhotos(d.map(p => p.urls.regular)); })
+      .catch(() => {});
+  }, [item.name]);
+
+  useEffect(() => {
+    if (detailCache[cacheKey]) { setDetail(detailCache[cacheKey]); setLoadingDetail(false); return; }
+    const prompt = `You are a local expert. Generate a detailed profile for "${item.name}" (${placeType}) in ${neighborhood}, ${city.name}. Return JSON only, no markdown:
+{
+  "overview": "2-3 sentences vivid description",
+  "hours": "e.g. Mon-Fri 8am-10pm, Sat-Sun 9am-11pm",
+  "priceRange": "$, $$, $$$, or $$$$",
+  "vibeRating": 1-10,
+  "vibeDesc": "3-4 words e.g. lively, trendy, cozy",
+  "website": "https://... (best guess or leave empty string)",
+  "mustTry": "one item or experience to try",
+  "tags": ["tag1","tag2","tag3"]
+}`;
+    fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json","anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY },
+      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:500, messages:[{role:"user",content:prompt}] })
+    })
+    .then(r => r.json())
+    .then(d => {
+      const raw = (d.content||[]).map(i=>i.text||"").join("");
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (m) { const parsed = JSON.parse(m[0]); detailCache[cacheKey] = parsed; setDetail(parsed); }
+      setLoadingDetail(false);
+    })
+    .catch(() => setLoadingDetail(false));
+  }, [item.name]);
+
+  return (
+    <div style={{ background:city.bg, border:`1px solid ${city.accent}55`, borderLeft:`3px solid ${city.accent}`, marginTop:"2px", overflow:"hidden" }}>
+      {/* Photo Gallery */}
+      {photos.length > 0 && (
+        <div style={{ position:"relative", height:"220px", overflow:"hidden" }}>
+          <img src={photos[activePhoto]} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.9 }} />
+          {photos.length > 1 && (
+            <div style={{ position:"absolute", bottom:"10px", left:"50%", transform:"translateX(-50%)", display:"flex", gap:"6px" }}>
+              {photos.map((_,i) => (
+                <button key={i} onClick={() => setActivePhoto(i)}
+                  style={{ width:"8px", height:"8px", borderRadius:"50%", border:"none", background: i===activePhoto?"#fff":city.accent+"88", cursor:"pointer", padding:0 }} />
+              ))}
+            </div>
+          )}
+          {photos.length > 1 && (
+            <>
+              <button onClick={() => setActivePhoto(p => (p-1+photos.length)%photos.length)}
+                style={{ position:"absolute", left:"10px", top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>‹</button>
+              <button onClick={() => setActivePhoto(p => (p+1)%photos.length)}
+                style={{ position:"absolute", right:"10px", top:"50%", transform:"translateY(-50%)", background:"rgba(0,0,0,0.5)", border:"none", color:"#fff", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>›</button>
+            </>
+          )}
+          <button onClick={onClose} style={{ position:"absolute", top:"10px", right:"10px", background:"rgba(0,0,0,0.6)", border:"none", color:"#fff", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"16px", lineHeight:"28px", textAlign:"center" }}>×</button>
+        </div>
+      )}
+      {photos.length === 0 && (
+        <div style={{ display:"flex", justifyContent:"flex-end", padding:"8px 12px" }}>
+          <button onClick={onClose} style={{ background:"transparent", border:`1px solid ${city.cardBorder}`, color:city.textMuted, width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>×</button>
+        </div>
+      )}
+
+      <div style={{ padding:"18px 20px" }}>
+        {loadingDetail && <div style={{ fontSize:"12px", color:city.textMuted, fontStyle:"italic" }}>Loading details…</div>}
+        {detail && (
+          <>
+            {/* Vibe + Price */}
+            <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"14px", alignItems:"center" }}>
+              <span style={{ fontSize:"11px", padding:"3px 10px", background:city.accent+"22", color:city.accent, border:`1px solid ${city.accent}44` }}>
+                {"⭐".repeat(Math.round((detail.vibeRating||7)/2))} {detail.vibeRating}/10 vibe
+              </span>
+              <span style={{ fontSize:"11px", padding:"3px 10px", background:city.card, color:city.textMuted, border:`1px solid ${city.cardBorder}` }}>{detail.priceRange}</span>
+              <span style={{ fontSize:"11px", color:city.textMuted, fontStyle:"italic" }}>{detail.vibeDesc}</span>
+            </div>
+
+            {/* Overview */}
+            <p style={{ margin:"0 0 12px", fontSize:"13px", color:city.textMuted, lineHeight:"1.7" }}>{detail.overview}</p>
+
+            {/* Hours + Must Try */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px", marginBottom:"14px" }}>
+              <div style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"10px 12px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>Hours</div>
+                <div style={{ fontSize:"12px", color:city.textPrimary }}>{detail.hours}</div>
+              </div>
+              <div style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"10px 12px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>Must Try</div>
+                <div style={{ fontSize:"12px", color:city.accentLight }}>{detail.mustTry}</div>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {detail.tags?.length > 0 && (
+              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"12px" }}>
+                {detail.tags.map((t,i) => <span key={i} style={{ fontSize:"10px", padding:"2px 8px", background:city.bg, border:`1px solid ${city.cardBorder}`, color:city.textMuted }}>#{t}</span>)}
+              </div>
+            )}
+
+            {/* Website */}
+            {detail.website && (
+              <a href={detail.website} target="_blank" rel="noopener noreferrer"
+                style={{ display:"inline-flex", alignItems:"center", gap:"6px", fontSize:"11px", padding:"7px 14px", background:city.card, border:`1px solid ${city.accent}55`, color:city.accent, textDecoration:"none", letterSpacing:"1.5px", textTransform:"uppercase" }}>
+                🔗 Visit Website
+              </a>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1344,6 +1519,8 @@ function NeighborhoodPage({ neighborhood, city, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeSection, setActiveSection] = useState("food");
+  const [expandedItem, setExpandedItem] = useState(null);
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const v = useMount();
   const Skyline = SKYLINES[city.id];
 
@@ -1394,7 +1571,11 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
     .catch(err => { setError(err.message); setLoading(false); });
   }, [neighborhood.name, city.id]);
 
-  const sections = data ? [...Object.keys(SECTION_LABELS).filter(s => s !== "apartments" && data[s]?.length > 0), "apartments"] : [];
+  const sections = data ? (() => {
+    const rest = Object.keys(SECTION_LABELS).filter(s => s !== "apartments" && s !== "food" && data[s]?.length > 0);
+    const hasFoo = data["food"]?.length > 0;
+    return [...(hasFoo?["food"]:[]), "apartments", ...rest];
+  })() : [];
 
   return (
     <div style={{ minHeight:"100vh", background:city.bg, fontFamily:city.bodyFont, color:city.textPrimary, opacity:v?1:0, transition:"opacity 0.5s" }}>
@@ -1458,6 +1639,7 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
           <NeighborhoodGoogleMap
             neighborhood={neighborhood}
             city={city}
+            selectedPlace={selectedPlace}
           />
         </div>
       )}
@@ -1468,7 +1650,7 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
           <div style={{ borderBottom:`1px solid ${city.cardBorder}`, position:"sticky", top:0, zIndex:15, background:`${city.bg}f8`, backdropFilter:"blur(12px)" }}>
             <div style={{ display:"flex", overflowX:"auto", padding:"0 20px" }}>
               {sections.map(s => (
-                <button key={s} onClick={() => setActiveSection(s)}
+                <button key={s} onClick={() => { setActiveSection(s); setExpandedItem(null); setSelectedPlace(null); }}
                   style={{ background:"transparent", border:"none", borderBottom:activeSection===s?`2px solid ${city.accent}`:"2px solid transparent", color:activeSection===s?city.textPrimary:city.textMuted, padding:"13px 14px", fontSize:"11px", cursor:"pointer", fontFamily:city.bodyFont, whiteSpace:"nowrap", transition:"color 0.15s" }}>
                   {SECTION_ICONS[s]} {SECTION_LABELS[s]}
                 </button>
@@ -1485,29 +1667,51 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
               />
             ) : (
               <div style={{ display:"grid", gap:"9px" }}>
-                {(data[activeSection]||[]).map((item,i) => (
-                  <div key={`${activeSection}-${i}`}
-                    style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
-                    onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
-                    onMouseLeave={e => e.currentTarget.style.transform="none"}
-                  >
-                    <PlacePhoto
-                      placeName={item.name}
-                      placeType={activeSection}
-                      neighborhood={neighborhood.name}
-                      city={city.name}
-                      style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
-                    />
-                    <div style={{ padding:"14px 18px" }}>
-                      {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
-                      <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0 }}>
-                        <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
-                        {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+                {(data[activeSection]||[]).map((item,i) => {
+                  const isExpanded = expandedItem === `${activeSection}-${i}`;
+                  return (
+                    <div key={`${activeSection}-${i}`}>
+                      <div
+                        onClick={() => {
+                          const key = `${activeSection}-${i}`;
+                          if (isExpanded) { setExpandedItem(null); setSelectedPlace(null); }
+                          else { setExpandedItem(key); setSelectedPlace(item); window.scrollTo({top:0,behavior:"smooth"}); }
+                        }}
+                        style={{ background:isExpanded?`${city.accent}11`:city.card, border:`1px solid ${isExpanded?city.accent+"66":item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${isExpanded?city.accent:item.must?city.accent:city.cardBorder}`, transition:"all 0.2s", position:"relative", overflow:"hidden", cursor:"pointer" }}
+                        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.transform="translateX(3px)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform="none"; }}
+                      >
+                        <PlacePhoto
+                          placeName={item.name}
+                          placeType={activeSection}
+                          neighborhood={neighborhood.name}
+                          city={city.name}
+                          style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
+                        />
+                        <div style={{ padding:"14px 18px" }}>
+                          {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
+                          <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0, justifyContent:"space-between" }}>
+                            <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+                              <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
+                              {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+                            </div>
+                            <span style={{ fontSize:"12px", color:city.accent, opacity:0.8 }}>{isExpanded?"▲":"▼"}</span>
+                          </div>
+                          {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
+                        </div>
                       </div>
-                      {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
+                      {isExpanded && (
+                        <PlaceDetailPanel
+                          item={item}
+                          placeType={activeSection}
+                          neighborhood={neighborhood.name}
+                          city={city.name}
+                          onClose={() => { setExpandedItem(null); setSelectedPlace(null); }}
+                        />
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
