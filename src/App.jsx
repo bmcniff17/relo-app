@@ -1213,9 +1213,131 @@ function PlacePhoto({ placeName, placeType, neighborhood, city, style }) {
   );
 }
 
+// ── Apartments Tab ────────────────────────────────────────────────────────────
+function ApartmentsTab({ apartments, stats, neighborhood, city }) {
+  const [minBeds, setMinBeds] = useState(0);
+  const [maxRent, setMaxRent] = useState(10000);
+  const [tierFilter, setTierFilter] = useState("all");
+
+  const rentNum = r => parseInt((r||"$0").replace(/[^0-9]/g,"")) || 0;
+
+  const filtered = (apartments||[]).filter(a => {
+    if (minBeds > 0 && a.beds < minBeds) return false;
+    if (rentNum(a.rent) > maxRent) return false;
+    if (tierFilter !== "all" && a.tier !== tierFilter) return false;
+    return true;
+  });
+
+  const tierColor = { budget: "#4caf50", mid: city.accent, luxury: "#c9a84c" };
+  const tierLabel = { budget: "Budget", mid: "Mid-Range", luxury: "Luxury" };
+
+  const zillow = `https://www.zillow.com/homes/${encodeURIComponent(neighborhood.name+", "+city.name)}_rb/`;
+  const aptsCom = `https://www.apartments.com/${neighborhood.name.toLowerCase().replace(/\s+/g,"-")}-${city.name.toLowerCase()}/`;
+
+  return (
+    <div>
+      {/* Rent Stats Bar */}
+      <div style={{ display:"flex", gap:"12px", flexWrap:"wrap", marginBottom:"20px" }}>
+        {[
+          { label:"Avg 1BR", value: stats?.avgRent1br || "–" },
+          { label:"Avg 2BR", value: stats?.avgRent2br || "–" },
+          { label:"Best For", value: stats?.bestFor || "–" },
+        ].map(s => (
+          <div key={s.label} style={{ flex:"1 1 120px", background:city.card, border:`1px solid ${city.cardBorder}`, padding:"14px 16px" }}>
+            <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>{s.label}</div>
+            <div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accent }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* External Links */}
+      <div style={{ display:"flex", gap:"10px", marginBottom:"20px", flexWrap:"wrap" }}>
+        <a href={zillow} target="_blank" rel="noopener noreferrer"
+          style={{ flex:"1 1 140px", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", padding:"12px 16px", background:city.card, border:`1px solid ${city.accent}55`, color:city.accent, textDecoration:"none", fontSize:"12px", letterSpacing:"1.5px", textTransform:"uppercase", fontFamily:city.bodyFont, transition:"background 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.background=city.accent+"22"}
+          onMouseLeave={e => e.currentTarget.style.background=city.card}>
+          🏠 Search Zillow
+        </a>
+        <a href={aptsCom} target="_blank" rel="noopener noreferrer"
+          style={{ flex:"1 1 140px", display:"flex", alignItems:"center", justifyContent:"center", gap:"8px", padding:"12px 16px", background:city.card, border:`1px solid ${city.accent}55`, color:city.accent, textDecoration:"none", fontSize:"12px", letterSpacing:"1.5px", textTransform:"uppercase", fontFamily:city.bodyFont, transition:"background 0.15s" }}
+          onMouseEnter={e => e.currentTarget.style.background=city.accent+"22"}
+          onMouseLeave={e => e.currentTarget.style.background=city.card}>
+          🏢 Apartments.com
+        </a>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"20px", padding:"14px 16px", background:city.card, border:`1px solid ${city.cardBorder}` }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:"4px", flex:"1 1 100px" }}>
+          <label style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted }}>Min Beds</label>
+          <select value={minBeds} onChange={e => setMinBeds(Number(e.target.value))}
+            style={{ background:city.bg, border:`1px solid ${city.cardBorder}`, color:city.textPrimary, padding:"6px 8px", fontFamily:city.bodyFont, fontSize:"12px", cursor:"pointer" }}>
+            <option value={0}>Any</option>
+            <option value={0.5}>Studio+</option>
+            <option value={1}>1+</option>
+            <option value={2}>2+</option>
+            <option value={3}>3+</option>
+          </select>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:"4px", flex:"1 1 140px" }}>
+          <label style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted }}>Max Rent: ${maxRent >= 10000 ? "No limit" : maxRent.toLocaleString()}</label>
+          <input type="range" min={500} max={10000} step={250} value={maxRent} onChange={e => setMaxRent(Number(e.target.value))}
+            style={{ accentColor:city.accent, cursor:"pointer" }} />
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:"4px", flex:"1 1 100px" }}>
+          <label style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted }}>Tier</label>
+          <select value={tierFilter} onChange={e => setTierFilter(e.target.value)}
+            style={{ background:city.bg, border:`1px solid ${city.cardBorder}`, color:city.textPrimary, padding:"6px 8px", fontFamily:city.bodyFont, fontSize:"12px", cursor:"pointer" }}>
+            <option value="all">All</option>
+            <option value="budget">Budget</option>
+            <option value="mid">Mid-Range</option>
+            <option value="luxury">Luxury</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Listings */}
+      <div style={{ display:"grid", gap:"9px" }}>
+        {filtered.length === 0 && (
+          <div style={{ textAlign:"center", padding:"32px", color:city.textMuted, fontSize:"13px" }}>No listings match your filters</div>
+        )}
+        {filtered.map((apt, i) => (
+          <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px" }}
+            onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
+            onMouseLeave={e => e.currentTarget.style.transform="none"}
+            style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px", transition:"transform 0.15s" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"8px", marginBottom:"6px" }}>
+              <div>
+                <div style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary, marginBottom:"2px" }}>{apt.name}</div>
+                <div style={{ fontSize:"11px", color:city.textMuted }}>{apt.address}</div>
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:"18px", fontFamily:city.displayFont, color:city.accent }}>{apt.rent}</div>
+                <div style={{ fontSize:"9px", padding:"2px 8px", background:tierColor[apt.tier]+"22", color:tierColor[apt.tier]||city.accent, border:`1px solid ${tierColor[apt.tier]||city.accent}44`, display:"inline-block", marginTop:"2px" }}>{tierLabel[apt.tier]||apt.tier}</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:"16px", fontSize:"12px", color:city.textMuted, marginBottom:"8px" }}>
+              <span>🛏 {apt.beds === 0 ? "Studio" : `${apt.beds} bed`}</span>
+              <span>🚿 {apt.baths} bath</span>
+              <span>📐 {apt.sqft?.toLocaleString()} sqft</span>
+            </div>
+            {apt.features?.length > 0 && (
+              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
+                {apt.features.map((f,j) => (
+                  <span key={j} style={{ fontSize:"10px", padding:"2px 8px", background:city.bg, border:`1px solid ${city.cardBorder}`, color:city.textMuted }}>{f}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── AI-Powered Neighborhood Page ─────────────────────────────────────────────
-const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿" };
-const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space" };
+const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿",apartments:"🏠" };
+const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space",apartments:"Apartments" };
 
 function NeighborhoodPage({ neighborhood, city, onBack }) {
   const [data, setData] = useState(null);
@@ -1240,10 +1362,11 @@ Return this exact structure:
   "shopping": [{"name":"...","desc":"1 sentence"}],
   "gyms": [{"name":"...","desc":"1 sentence"}],
   "landmarks": [{"name":"...","desc":"1 sentence"}],
-  "parks": [{"name":"...","desc":"1 sentence"}]
+  "parks": [{"name":"...","desc":"1 sentence"}],
+  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}]
 }
 
-Include 3-5 real items per category. Mark the single best must-visit food spot with must:true.`;
+Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). Mark the top 2 must-visit food spots with must:true.`;
 
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1255,7 +1378,7 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
+        max_tokens: 4000,
         messages: [{ role: "user", content: prompt }]
       })
     })
@@ -1271,7 +1394,7 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
     .catch(err => { setError(err.message); setLoading(false); });
   }, [neighborhood.name, city.id]);
 
-  const sections = data ? Object.keys(SECTION_LABELS).filter(s => data[s]?.length > 0) : [];
+  const sections = data ? [...Object.keys(SECTION_LABELS).filter(s => s !== "apartments" && data[s]?.length > 0), "apartments"] : [];
 
   return (
     <div style={{ minHeight:"100vh", background:city.bg, fontFamily:city.bodyFont, color:city.textPrimary, opacity:v?1:0, transition:"opacity 0.5s" }}>
@@ -1353,31 +1476,40 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
             </div>
           </div>
           <div style={{ maxWidth:"860px", margin:"0 auto", padding:"24px 32px 80px" }}>
-            <div style={{ display:"grid", gap:"9px" }}>
-              {(data[activeSection]||[]).map((item,i) => (
-                <div key={i}
-                  style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
-                  onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
-                  onMouseLeave={e => e.currentTarget.style.transform="none"}
-                >
-                  <PlacePhoto
-                    placeName={item.name}
-                    placeType={activeSection}
-                    neighborhood={neighborhood.name}
-                    city={city.name}
-                    style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
-                  />
-                  <div style={{ padding:"14px 18px" }}>
-                    {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
-                    <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0 }}>
-                      <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
-                      {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+            {activeSection === "apartments" ? (
+              <ApartmentsTab
+                apartments={data.apartments}
+                stats={data.stats}
+                neighborhood={neighborhood}
+                city={city}
+              />
+            ) : (
+              <div style={{ display:"grid", gap:"9px" }}>
+                {(data[activeSection]||[]).map((item,i) => (
+                  <div key={`${activeSection}-${i}`}
+                    style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
+                    onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
+                    onMouseLeave={e => e.currentTarget.style.transform="none"}
+                  >
+                    <PlacePhoto
+                      placeName={item.name}
+                      placeType={activeSection}
+                      neighborhood={neighborhood.name}
+                      city={city.name}
+                      style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
+                    />
+                    <div style={{ padding:"14px 18px" }}>
+                      {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
+                      <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:item.desc?"5px":0 }}>
+                        <span style={{ fontSize:"15px", fontFamily:city.displayFont, color:city.textPrimary }}>{item.name}</span>
+                        {item.type && <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{item.type}</span>}
+                      </div>
+                      {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
                     </div>
-                    {item.desc && <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.65" }}>{item.desc}</p>}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
