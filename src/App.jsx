@@ -1211,43 +1211,51 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
   );
 }
 
-// ── Place Photo Card ──────────────────────────────────────────────────────────
-function PlacePhoto({ placeName, neighborhood, city, style }) {
+// ── Place Photo Card (Unsplash) ───────────────────────────────────────────────
+const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
+const photoCache = {};
+
+function PlacePhoto({ placeName, placeType, neighborhood, city, style }) {
   const [photoUrl, setPhotoUrl] = useState(null);
-  const divRef = useRef(null);
 
   useEffect(() => {
-    if (!GMAPS_KEY) return;
-    setPhotoUrl(null); // reset when place changes
-    loadGoogleMaps().then(() => {
-      if (!divRef.current) return;
-      const svc = new window.google.maps.places.PlacesService(divRef.current);
-      svc.findPlaceFromQuery(
-        { query: `${placeName} ${neighborhood} ${city}`, fields: ["place_id"] },
-        (results, status) => {
-          if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.place_id) return;
-          svc.getDetails(
-            { placeId: results[0].place_id, fields: ["photos"] },
-            (place, detailStatus) => {
-              if (detailStatus !== window.google.maps.places.PlacesServiceStatus.OK) return;
-              const photos = place?.photos;
-              if (!photos?.length) return;
-              // Pick widest photo for best quality, avoid portrait crops
-              const landscape = photos.filter(p => p.width >= p.height);
-              const pool = landscape.length ? landscape : photos;
-              const best = pool.reduce((a, b) => (b.width > a.width ? b : a), pool[0]);
-              setPhotoUrl(best.getUrl({ maxWidth: 1200, maxHeight: 400 }));
-            }
-          );
+    if (!UNSPLASH_KEY) return;
+    setPhotoUrl(null);
+
+    // Build a search query focused on interior/food shots
+    const typeMap = {
+      food: "restaurant interior food",
+      bars: "bar interior cocktails",
+      coffee: "coffee shop cafe interior",
+      shopping: "boutique shop interior",
+      gyms: "gym fitness studio",
+      landmarks: "landmark architecture",
+      parks: "park nature outdoor",
+    };
+    const typeQuery = typeMap[placeType] || "restaurant interior";
+    const query = `${typeQuery} ${city}`;
+    const cacheKey = query;
+
+    if (photoCache[cacheKey]) {
+      setPhotoUrl(photoCache[cacheKey]);
+      return;
+    }
+
+    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d?.urls?.regular) {
+          photoCache[cacheKey] = d.urls.regular;
+          setPhotoUrl(d.urls.regular);
         }
-      );
-    }).catch(() => {});
-  }, [placeName]);
+      })
+      .catch(() => {});
+  }, [placeName, placeType, city]);
 
   return (
-    <div ref={divRef} style={style}>
+    <div style={style}>
       {photoUrl && (
-        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block", opacity:0.9 }} />
+        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block", opacity:0.88 }} />
       )}
     </div>
   );
@@ -1404,9 +1412,10 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
                 >
                   <PlacePhoto
                     placeName={item.name}
+                    placeType={activeSection}
                     neighborhood={neighborhood.name}
                     city={city.name}
-                    style={{ width:"100%", height:"140px", background:city.card, overflow:"hidden", position:"relative" }}
+                    style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
                   />
                   <div style={{ padding:"14px 18px" }}>
                     {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
