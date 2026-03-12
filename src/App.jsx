@@ -1106,24 +1106,16 @@ function loadGoogleMaps() {
   return window._gmapsPromise;
 }
 
-// ── Neighborhood Google Map with pins ────────────────────────────────────────
-function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
+// ── Neighborhood Google Map ──────────────────────────────────────────────────
+function NeighborhoodGoogleMap({ neighborhood, city }) {
   const mapRef = useRef(null);
-  const serviceRef = useRef(null); // separate div for PlacesService
   const mapInstance = useRef(null);
-  const markersRef = useRef([]);
   const [mapError, setMapError] = useState(false);
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => { isMounted.current = false; };
-  }, []);
 
   useEffect(() => {
     loadGoogleMaps()
       .then(() => {
-        if (!mapRef.current || !isMounted.current) return;
+        if (!mapRef.current) return;
         const center = { lat: neighborhood.lat, lng: neighborhood.lng };
         mapInstance.current = new window.google.maps.Map(mapRef.current, {
           center,
@@ -1143,7 +1135,6 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
           zoomControl: true,
           zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
         });
-        // Neighborhood center marker
         new window.google.maps.Marker({
           position: center,
           map: mapInstance.current,
@@ -1158,70 +1149,8 @@ function NeighborhoodGoogleMap({ neighborhood, city, places, activeSection }) {
           },
         });
       })
-      .catch(() => { if (isMounted.current) setMapError(true); });
+      .catch(() => setMapError(true));
   }, [neighborhood.lat, neighborhood.lng]);
-
-  // Add/update place pins when places or activeSection changes
-  useEffect(() => {
-    if (!mapInstance.current || !window.google?.maps || !isMounted.current) return;
-    // Safely clear old markers
-    markersRef.current.forEach(m => { try { m.setMap(null); } catch(e) {} });
-    markersRef.current = [];
-    if (!places || places.length === 0) return;
-
-    // Use a dedicated hidden div for PlacesService to avoid DOM conflicts
-    if (!serviceRef.current) {
-      serviceRef.current = document.createElement("div");
-      document.body.appendChild(serviceRef.current);
-    }
-    const service = new window.google.maps.places.PlacesService(serviceRef.current);
-    const bounds = new window.google.maps.LatLngBounds();
-    bounds.extend({ lat: neighborhood.lat, lng: neighborhood.lng });
-
-    places.slice(0, 5).forEach((place) => {
-      const req = { query: `${place.name} ${neighborhood.name} ${city.name}`, fields: ["geometry","name"] };
-      service.findPlaceFromQuery(req, (results, status) => {
-        if (!isMounted.current) return;
-        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.[0]?.geometry) return;
-        const pos = results[0].geometry.location;
-        bounds.extend(pos);
-        try {
-          const marker = new window.google.maps.Marker({
-            position: pos,
-            map: mapInstance.current,
-            title: place.name,
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: city.accent,
-              fillOpacity: place.must ? 1 : 0.75,
-              strokeColor: "#fff",
-              strokeWeight: 1.5,
-            },
-          });
-          const iw = new window.google.maps.InfoWindow({
-            content: `<div style="font-family:sans-serif;padding:4px 2px;color:#111"><strong style="font-size:13px">${place.name}</strong>${place.must ? '<span style="margin-left:6px;background:#e67e22;color:#fff;font-size:9px;padding:1px 5px;border-radius:2px">Must Visit</span>' : ""}<br/><span style="font-size:12px;color:#555">${place.desc||""}</span></div>`,
-          });
-          marker.addListener("click", () => iw.open(mapInstance.current, marker));
-          markersRef.current.push(marker);
-          if (markersRef.current.length > 1 && isMounted.current) {
-            mapInstance.current.fitBounds(bounds);
-          }
-        } catch(e) {}
-      });
-    });
-  }, [places, activeSection]);
-
-  // Cleanup service div on unmount
-  useEffect(() => {
-    return () => {
-      markersRef.current.forEach(m => { try { m.setMap(null); } catch(e) {} });
-      if (serviceRef.current) {
-        try { document.body.removeChild(serviceRef.current); } catch(e) {}
-        serviceRef.current = null;
-      }
-    };
-  }, []);
 
   if (mapError) return null;
   return (
@@ -1406,8 +1335,6 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
           <NeighborhoodGoogleMap
             neighborhood={neighborhood}
             city={city}
-            places={data ? (data[activeSection] || []) : []}
-            activeSection={activeSection}
           />
         </div>
       )}
