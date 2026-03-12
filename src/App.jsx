@@ -1320,6 +1320,12 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
   }, [neighborhood.name, city.id]);
 
   const sections = data ? Object.keys(SECTION_LABELS).filter(s => data[s]?.length > 0) : [];
+  // Safety: if activeSection has no data in new load, reset to first available
+  useEffect(() => {
+    if (sections.length > 0 && !sections.includes(activeSection)) {
+      setActiveSection(sections[0]);
+    }
+  }, [sections.join(",")]);
 
   return (
     <div style={{ minHeight:"100vh", background:city.bg, fontFamily:city.bodyFont, color:city.textPrimary, opacity:v?1:0, transition:"opacity 0.5s" }}>
@@ -1405,7 +1411,7 @@ Include 3-5 real items per category. Mark the single best must-visit food spot w
           <div style={{ maxWidth:"860px", margin:"0 auto", padding:"24px 32px 80px" }}>
             <div style={{ display:"grid", gap:"9px" }}>
               {(data[activeSection]||[]).map((item,i) => (
-                <div key={i}
+                <div key={`${activeSection}-${i}`}
                   style={{ background:city.card, border:`1px solid ${item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${item.must?city.accent:city.cardBorder}`, transition:"transform 0.15s", position:"relative", overflow:"hidden" }}
                   onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
                   onMouseLeave={e => e.currentTarget.style.transform="none"}
