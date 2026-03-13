@@ -1111,7 +1111,20 @@ function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const selectedMarkerRef = useRef(null);
+  const outlineRef = useRef([]);
   const [mapError, setMapError] = useState(false);
+
+  // Convert OSM geometry to Google Maps LatLng arrays
+  function osmToLatLng(geometry) {
+    if (!geometry) return [];
+    if (geometry.type === "Polygon") {
+      return geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
+    }
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates[0][0].map(([lng, lat]) => ({ lat, lng }));
+    }
+    return [];
+  }
 
   useEffect(() => {
     loadGoogleMaps()
@@ -1136,6 +1149,7 @@ function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
           zoomControl: true,
           zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
         });
+        // Center pin
         new window.google.maps.Marker({
           position: center,
           map: mapInstance.current,
@@ -1149,6 +1163,37 @@ function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
             strokeWeight: 2,
           },
         });
+
+        // Fetch neighborhood outline from OpenStreetMap Nominatim
+        const query = encodeURIComponent(`${neighborhood.name}, ${city.name}`);
+        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1&limit=1&addressdetails=0`, {
+          headers: { "Accept-Language": "en" }
+        })
+          .then(r => r.json())
+          .then(results => {
+            if (!results?.[0]?.geojson) return;
+            const coords = osmToLatLng(results[0].geojson);
+            if (coords.length < 3) return;
+            // Clear old outline
+            outlineRef.current.forEach(p => p.setMap(null));
+            outlineRef.current = [];
+            // Draw glowing outline
+            const outline = new window.google.maps.Polygon({
+              paths: coords,
+              strokeColor: city.accent,
+              strokeOpacity: 0.85,
+              strokeWeight: 2.5,
+              fillColor: city.accent,
+              fillOpacity: 0.08,
+              map: mapInstance.current,
+            });
+            outlineRef.current.push(outline);
+            // Fit map to outline bounds
+            const bounds = new window.google.maps.LatLngBounds();
+            coords.forEach(p => bounds.extend(p));
+            mapInstance.current.fitBounds(bounds);
+          })
+          .catch(() => {}); // silently fail if outline not found
       })
       .catch(() => setMapError(true));
   }, [neighborhood.lat, neighborhood.lng]);
@@ -1165,7 +1210,6 @@ function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
       mapInstance.current.setZoom(14);
       return;
     }
-    // Use Geocoding API to find place coords
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address: `${selectedPlace.name}, ${neighborhood.name}, ${city.name}` }, (results, status) => {
       if (status !== "OK" || !results?.[0]?.geometry) return;
@@ -1532,7 +1576,7 @@ Return this exact structure:
 {
   "headline": "short punchy tagline (max 10 words)",
   "about": "2-3 sentence neighborhood overview",
-  "stats": { "walkScore": 0-100, "transitScore": 0-100, "bikeScore": 0-100, "avgRent1br": "$X,XXX", "avgRent2br": "$X,XXX", "bestFor": "who lives here" },
+  "stats": { "walkScore": 0-100, "transitScore": 0-100, "bikeScore": 0-100, "safetyScore": 0-100, "avgRent1br": "$X,XXX", "avgRent2br": "$X,XXX", "bestFor": "who lives here" },
   "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true}],
   "bars": [{"name":"...","desc":"1 sentence"}],
   "coffee": [{"name":"...","desc":"1 sentence"}],
@@ -1602,15 +1646,30 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
       {/* Stats bar */}
       {data?.stats && (
         <div style={{ background:city.card, borderTop:`1px solid ${city.cardBorder}`, borderBottom:`1px solid ${city.cardBorder}`, padding:"14px 32px", display:"flex", gap:"28px", overflowX:"auto", flexWrap:"wrap" }}>
-          {[{l:"Walk Score",v:data.stats.walkScore,max:100},{l:"Transit",v:data.stats.transitScore,max:100},{l:"Bike Score",v:data.stats.bikeScore,max:100},{l:"1BR Rent",v:data.stats.avgRent1br},{l:"2BR Rent",v:data.stats.avgRent2br}].map(s => (
-            <div key={s.l} style={{ minWidth:"72px" }}>
-              <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>{s.l}</div>
-              {s.max
-                ? <div><div style={{ fontSize:"18px", fontFamily:city.displayFont, color:city.accent }}>{s.v}</div><div style={{ width:"52px", height:"3px", background:city.cardBorder, borderRadius:"2px", marginTop:"3px" }}><div style={{ height:"100%", width:`${((s.v||0)/s.max)*100}%`, background:city.accent, borderRadius:"2px" }} /></div></div>
-                : <div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accentLight }}>{s.v}</div>
-              }
-            </div>
-          ))}
+          {[
+            {l:"Walk Score",v:data.stats.walkScore,max:100},
+            {l:"Transit",v:data.stats.transitScore,max:100},
+            {l:"Bike Score",v:data.stats.bikeScore,max:100},
+            {l:"Safety Score",v:data.stats.safetyScore,max:100,safety:true},
+            {l:"1BR Rent",v:data.stats.avgRent1br},
+            {l:"2BR Rent",v:data.stats.avgRent2br}
+          ].map(s => {
+            const safetyColor = s.safety ? (s.v >= 75 ? "#4caf50" : s.v >= 50 ? "#ff9800" : "#f44336") : city.accent;
+            return (
+              <div key={s.l} style={{ minWidth:"72px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>{s.l}</div>
+                {s.max
+                  ? <div>
+                      <div style={{ fontSize:"18px", fontFamily:city.displayFont, color:safetyColor }}>{s.v}</div>
+                      <div style={{ width:"52px", height:"3px", background:city.cardBorder, borderRadius:"2px", marginTop:"3px" }}>
+                        <div style={{ height:"100%", width:`${((s.v||0)/s.max)*100}%`, background:safetyColor, borderRadius:"2px" }} />
+                      </div>
+                    </div>
+                  : <div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accentLight }}>{s.v}</div>
+                }
+              </div>
+            );
+          })}
           {data.stats.bestFor && <div style={{ flex:1, minWidth:"130px" }}><div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>Best For</div><div style={{ fontSize:"12px", color:city.textMuted, fontStyle:"italic", lineHeight:1.4 }}>{data.stats.bestFor}</div></div>}
         </div>
       )}
