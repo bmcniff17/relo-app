@@ -206,6 +206,297 @@ const SKYLINES = {
       <rect x="0" y="258" width="800" height="42" fill={accent} opacity="0.08" />
     </svg>
   ),
+  denver: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Rocky Mountains backdrop */}
+      <polygon points="0,200 80,100 160,150 240,80 320,130 400,60 480,120 560,90 640,140 720,100 800,160 800,300 0,300" fill={accent} opacity="0.12" />
+      <polygon points="0,230 100,160 180,190 260,140 340,170 420,120 500,155 580,135 660,165 740,145 800,180 800,300 0,300" fill={accent} opacity="0.08" />
+      {/* Stars */}
+      {[[60,40],[150,25],[280,55],[420,20],[560,45],[700,30],[740,70]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.5" fill={accent} opacity="0.6" />
+      ))}
+      {/* Colorado State Capitol dome */}
+      <rect x="355" y="170" width="90" height="90" fill={accent} opacity="0.5" />
+      <ellipse cx="400" cy="170" rx="45" ry="35" fill={accent} opacity="0.55" />
+      <ellipse cx="400" cy="148" rx="18" ry="24" fill={accent} opacity="0.6" />
+      <rect x="397" y="126" width="6" height="22" fill={accent} opacity="0.7" />
+      {/* Downtown towers */}
+      <rect x="100" y="185" width="38" height="77" fill={accent} opacity="0.42" />
+      <rect x="148" y="195" width="30" height="67" fill={accent} opacity="0.38" />
+      <rect x="188" y="175" width="44" height="87" fill={accent} opacity="0.45" />
+      <rect x="242" y="200" width="28" height="62" fill={accent} opacity="0.35" />
+      <rect x="280" y="188" width="34" height="74" fill={accent} opacity="0.4" />
+      <rect x="460" y="182" width="40" height="80" fill={accent} opacity="0.43" />
+      <rect x="510" y="195" width="32" height="67" fill={accent} opacity="0.38" />
+      <rect x="552" y="178" width="36" height="84" fill={accent} opacity="0.41" />
+      <rect x="598" y="200" width="28" height="62" fill={accent} opacity="0.35" />
+      <rect x="636" y="190" width="34" height="72" fill={accent} opacity="0.39" />
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  nashville: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Stars */}
+      {[[50,30],[140,20],[270,50],[400,15],[530,40],[660,25],[740,60]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.5" fill={accent} opacity="0.6" />
+      ))}
+      {/* AT&T Building (Batman Building) */}
+      <rect x="355" y="120" width="90" height="140" fill={accent} opacity="0.55" />
+      <rect x="365" y="110" width="70" height="15" fill={accent} opacity="0.55" />
+      <rect x="375" y="95" width="50" height="18" fill={accent} opacity="0.6" />
+      {/* Twin spires */}
+      <rect x="378" y="60" width="8" height="38" fill={accent} opacity="0.65" />
+      <rect x="414" y="60" width="8" height="38" fill={accent} opacity="0.65" />
+      {/* Downtown buildings */}
+      <rect x="90" y="190" width="38" height="72" fill={accent} opacity="0.4" />
+      <rect x="138" y="178" width="32" height="84" fill={accent} opacity="0.43" />
+      <rect x="180" y="195" width="44" height="67" fill={accent} opacity="0.38" />
+      <rect x="234" y="185" width="30" height="77" fill={accent} opacity="0.41" />
+      <rect x="274" y="200" width="36" height="62" fill={accent} opacity="0.36" />
+      <rect x="470" y="188" width="38" height="74" fill={accent} opacity="0.42" />
+      <rect x="518" y="175" width="32" height="87" fill={accent} opacity="0.45" />
+      <rect x="560" y="193" width="40" height="69" fill={accent} opacity="0.39" />
+      <rect x="610" y="185" width="28" height="77" fill={accent} opacity="0.41" />
+      <rect x="648" y="198" width="34" height="64" fill={accent} opacity="0.37" />
+      {/* Cumberland River */}
+      <rect x="0" y="256" width="800" height="6" fill={accent} opacity="0.18" />
+      {/* Music notes */}
+      <text x="740" y="110" fontSize="20" fill={accent} opacity="0.25" fontFamily="serif">♪</text>
+      <text x="30" y="90" fontSize="16" fill={accent} opacity="0.22" fontFamily="serif">♫</text>
+      <text x="680" y="160" fontSize="14" fill={accent} opacity="0.2" fontFamily="serif">♩</text>
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  miami: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Ocean/sky gradient */}
+      <rect x="0" y="0" width="800" height="300" fill={accent} opacity="0.03" />
+      {/* Stars */}
+      {[[80,25],[200,15],[350,40],[500,18],[640,35],[730,55]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.2" fill={accent} opacity="0.5" />
+      ))}
+      {/* Moon over ocean */}
+      <circle cx="700" cy="50" r="22" fill={accent} opacity="0.2" />
+      {/* Biscayne Bay water */}
+      <ellipse cx="400" cy="285" rx="450" ry="25" fill={accent} opacity="0.1" />
+      {/* Tall Miami towers */}
+      <rect x="340" y="80" width="55" height="180" fill={accent} opacity="0.55" />
+      <rect x="345" y="75" width="45" height="10" fill={accent} opacity="0.6" />
+      <rect x="355" y="65" width="25" height="12" fill={accent} opacity="0.6" />
+      <rect x="403" y="100" width="50" height="160" fill={accent} opacity="0.5" />
+      <rect x="408" y="93" width="40" height="10" fill={accent} opacity="0.55" />
+      {/* Downtown towers */}
+      <rect x="80" y="160" width="36" height="102" fill={accent} opacity="0.38" />
+      <rect x="126" y="145" width="32" height="117" fill={accent} opacity="0.42" />
+      <rect x="168" y="170" width="40" height="92" fill={accent} opacity="0.36" />
+      <rect x="218" y="155" width="28" height="107" fill={accent} opacity="0.4" />
+      <rect x="256" y="168" width="38" height="94" fill={accent} opacity="0.37" />
+      <rect x="462" y="155" width="42" height="107" fill={accent} opacity="0.43" />
+      <rect x="514" y="148" width="34" height="114" fill={accent} opacity="0.45" />
+      <rect x="558" y="165" width="38" height="97" fill={accent} opacity="0.4" />
+      <rect x="606" y="158" width="30" height="104" fill={accent} opacity="0.38" />
+      <rect x="646" y="172" width="36" height="90" fill={accent} opacity="0.36" />
+      {/* Palm trees */}
+      {[[50,262],[160,258],[640,260],[750,255]].map(([x,y],i) => (
+        <g key={i}>
+          <rect x={x} y={y-30} width="3" height="30" fill={accent} opacity="0.4" />
+          <ellipse cx={x+1} cy={y-32} rx="12" ry="6" fill={accent} opacity="0.3" />
+        </g>
+      ))}
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  nyc: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Stars */}
+      {[[40,20],[120,35],[220,15],[380,28],[510,18],[650,32],[760,22]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.2" fill={accent} opacity="0.5" />
+      ))}
+      {/* Empire State Building */}
+      <rect x="370" y="80" width="60" height="180" fill={accent} opacity="0.6" />
+      <rect x="378" y="68" width="44" height="16" fill={accent} opacity="0.62" />
+      <rect x="385" y="55" width="30" height="16" fill={accent} opacity="0.65" />
+      <rect x="391" y="42" width="18" height="14" fill={accent} opacity="0.68" />
+      <rect x="398" y="22" width="4" height="22" fill={accent} opacity="0.75" />
+      {/* Chrysler-like spire */}
+      <rect x="190" y="110" width="48" height="150" fill={accent} opacity="0.52" />
+      <rect x="198" y="98" width="32" height="14" fill={accent} opacity="0.55" />
+      <rect x="206" y="78" width="16" height="22" fill={accent} opacity="0.6" />
+      <rect x="212" y="62" width="4" height="18" fill={accent} opacity="0.65" />
+      {/* One WTC */}
+      <rect x="560" y="60" width="52" height="200" fill={accent} opacity="0.55" />
+      <rect x="560" y="60" width="52" height="200" fill="none" stroke={accent} strokeWidth="1" opacity="0.3" />
+      <rect x="582" y="42" width="8" height="20" fill={accent} opacity="0.6" />
+      {/* Dense Manhattan towers */}
+      <rect x="60" y="175" width="28" height="87" fill={accent} opacity="0.35" />
+      <rect x="98" y="160" width="32" height="102" fill={accent} opacity="0.38" />
+      <rect x="140" y="150" width="36" height="112" fill={accent} opacity="0.41" />
+      <rect x="248" y="155" width="34" height="107" fill={accent} opacity="0.4" />
+      <rect x="292" y="165" width="30" height="97" fill={accent} opacity="0.37" />
+      <rect x="332" y="145" width="28" height="117" fill={accent} opacity="0.42" />
+      <rect x="440" y="148" width="32" height="114" fill={accent} opacity="0.43" />
+      <rect x="482" y="158" width="38" height="104" fill={accent} opacity="0.4" />
+      <rect x="530" y="142" width="22" height="120" fill={accent} opacity="0.44" />
+      <rect x="622" y="152" width="34" height="110" fill={accent} opacity="0.42" />
+      <rect x="666" y="165" width="30" height="97" fill={accent} opacity="0.38" />
+      <rect x="706" y="148" width="38" height="114" fill={accent} opacity="0.43" />
+      <rect x="754" y="170" width="28" height="92" fill={accent} opacity="0.36" />
+      {/* Hudson River */}
+      <rect x="0" y="256" width="800" height="6" fill={accent} opacity="0.18" />
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  la: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Hollywood Hills silhouette */}
+      <polygon points="0,220 60,170 120,190 180,155 240,175 300,145 360,165 420,140 480,170 540,150 600,175 660,155 720,180 800,160 800,300 0,300" fill={accent} opacity="0.1" />
+      {/* Stars */}
+      {[[50,30],[160,18],[300,42],[450,22],[600,38],[730,28]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.3" fill={accent} opacity="0.55" />
+      ))}
+      {/* Hollywood sign (tiny) */}
+      <text x="350" y="148" fontSize="8" fill={accent} opacity="0.3" fontFamily="sans-serif" fontWeight="bold" letterSpacing="2">HOLLYWOOD</text>
+      {/* Wilshire towers */}
+      <rect x="340" y="130" width="50" height="130" fill={accent} opacity="0.55" />
+      <rect x="348" y="120" width="34" height="12" fill={accent} opacity="0.58" />
+      <rect x="400" y="150" width="44" height="110" fill={accent} opacity="0.5" />
+      {/* Downtown LA */}
+      <rect x="80" y="175" width="38" height="87" fill={accent} opacity="0.4" />
+      <rect x="128" y="160" width="32" height="102" fill={accent} opacity="0.43" />
+      <rect x="170" y="178" width="40" height="84" fill={accent} opacity="0.38" />
+      <rect x="220" y="168" width="30" height="94" fill={accent} opacity="0.41" />
+      <rect x="260" y="182" width="36" height="80" fill={accent} opacity="0.37" />
+      <rect x="454" y="168" width="38" height="94" fill={accent} opacity="0.42" />
+      <rect x="502" y="155" width="34" height="107" fill={accent} opacity="0.45" />
+      <rect x="546" y="172" width="40" height="90" fill={accent} opacity="0.4" />
+      <rect x="596" y="165" width="28" height="97" fill={accent} opacity="0.38" />
+      <rect x="634" y="178" width="36" height="84" fill={accent} opacity="0.36" />
+      {/* Palm trees */}
+      {[[40,260],[130,256],[680,258],[770,253]].map(([x,y],i) => (
+        <g key={i}>
+          <rect x={x} y={y-35} width="3" height="35" fill={accent} opacity="0.4" />
+          <ellipse cx={x+1} cy={y-37} rx="14" ry="7" fill={accent} opacity="0.3" />
+        </g>
+      ))}
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  portland: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Mt Hood in background */}
+      <polygon points="580,80 620,20 660,80" fill={accent} opacity="0.25" />
+      <polygon points="575,82 660,82 680,120 555,120" fill={accent} opacity="0.1" />
+      {/* Stars / overcast */}
+      {[[40,35],[130,22],[250,48],[390,25],[530,42],[720,30]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.2" fill={accent} opacity="0.45" />
+      ))}
+      {/* Portland downtown */}
+      <rect x="340" y="150" width="55" height="112" fill={accent} opacity="0.52" />
+      <rect x="348" y="138" width="39" height="14" fill={accent} opacity="0.55" />
+      <rect x="355" y="124" width="25" height="16" fill={accent} opacity="0.58" />
+      <rect x="362" y="112" width="11" height="14" fill={accent} opacity="0.6" />
+      {/* Downtown towers */}
+      <rect x="85" y="185" width="36" height="77" fill={accent} opacity="0.38" />
+      <rect x="131" y="172" width="30" height="90" fill={accent} opacity="0.41" />
+      <rect x="171" y="188" width="38" height="74" fill={accent} opacity="0.37" />
+      <rect x="219" y="178" width="32" height="84" fill={accent} opacity="0.4" />
+      <rect x="261" y="192" width="36" height="70" fill={accent} opacity="0.36" />
+      <rect x="403" y="168" width="40" height="94" fill={accent} opacity="0.43" />
+      <rect x="453" y="180" width="32" height="82" fill={accent} opacity="0.39" />
+      <rect x="495" y="172" width="36" height="90" fill={accent} opacity="0.41" />
+      <rect x="541" y="188" width="28" height="74" fill={accent} opacity="0.37" />
+      <rect x="579" y="178" width="34" height="84" fill={accent} opacity="0.4" />
+      {/* Willamette River */}
+      <rect x="0" y="254" width="800" height="8" fill={accent} opacity="0.18" />
+      {/* Bridges (Portland is famous for them) */}
+      <line x1="150" y1="254" x2="150" y2="262" stroke={accent} strokeWidth="8" opacity="0.25" />
+      <line x1="100" y1="254" x2="200" y2="254" stroke={accent} strokeWidth="3" opacity="0.3" />
+      <line x1="450" y1="254" x2="450" y2="262" stroke={accent} strokeWidth="8" opacity="0.25" />
+      <line x1="400" y1="254" x2="500" y2="254" stroke={accent} strokeWidth="3" opacity="0.3" />
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  phoenix: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Desert mountains */}
+      <polygon points="0,240 70,180 140,220 210,170 280,205 350,160 420,195 490,165 560,200 630,172 700,210 800,185 800,300 0,300" fill={accent} opacity="0.1" />
+      {/* Stars (clear desert sky) */}
+      {[[45,20],[110,35],[200,12],[310,28],[430,15],[550,32],[670,20],[750,42]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.8" fill={accent} opacity="0.65" />
+      ))}
+      {/* Bright moon */}
+      <circle cx="720" cy="45" r="24" fill={accent} opacity="0.22" />
+      {/* Chase Tower */}
+      <rect x="355" y="140" width="55" height="122" fill={accent} opacity="0.55" />
+      <rect x="362" y="128" width="41" height="14" fill={accent} opacity="0.58" />
+      <rect x="370" y="115" width="25" height="15" fill={accent} opacity="0.6" />
+      {/* Downtown towers */}
+      <rect x="80" y="185" width="38" height="77" fill={accent} opacity="0.4" />
+      <rect x="128" y="172" width="32" height="90" fill={accent} opacity="0.43" />
+      <rect x="170" y="188" width="40" height="74" fill={accent} opacity="0.38" />
+      <rect x="220" y="178" width="28" height="84" fill={accent} opacity="0.41" />
+      <rect x="258" y="192" width="36" height="70" fill={accent} opacity="0.37" />
+      <rect x="420" y="175" width="42" height="87" fill={accent} opacity="0.42" />
+      <rect x="472" y="188" width="32" height="74" fill={accent} opacity="0.39" />
+      <rect x="514" y="170" width="38" height="92" fill={accent} opacity="0.43" />
+      <rect x="562" y="185" width="30" height="77" fill={accent} opacity="0.38" />
+      <rect x="602" y="178" width="36" height="84" fill={accent} opacity="0.4" />
+      {/* Saguaro cacti */}
+      {[[40,262],[720,258],[760,260]].map(([x,y],i) => (
+        <g key={i}>
+          <rect x={x} y={y-40} width="5" height="40" fill={accent} opacity="0.35" />
+          <rect x={x-8} y={y-25} width="8" height="3" fill={accent} opacity="0.35" />
+          <rect x={x-8} y={y-25} width="3" height="10" fill={accent} opacity="0.35" />
+          <rect x={x+5} y={y-20} width="8" height="3" fill={accent} opacity="0.35" />
+          <rect x={x+10} y={y-20} width="3" height="12" fill={accent} opacity="0.35" />
+        </g>
+      ))}
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
+  atlanta: ({ accent, opacity = 0.18 }) => (
+    <svg viewBox="0 0 800 300" preserveAspectRatio="xMidYMax meet" style={{ position:"absolute", inset:0, width:"100%", height:"100%", opacity }}>
+      {/* Stars */}
+      {[[55,28],[145,18],[265,45],[400,20],[540,38],[680,25],[750,50]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r="1.4" fill={accent} opacity="0.55" />
+      ))}
+      {/* Bank of America Plaza (distinctive) */}
+      <rect x="358" y="100" width="52" height="162" fill={accent} opacity="0.58" />
+      <rect x="365" y="88" width="38" height="14" fill={accent} opacity="0.6" />
+      <rect x="372" y="72" width="24" height="18" fill={accent} opacity="0.63" />
+      <rect x="382" y="55" width="4" height="19" fill={accent} opacity="0.7" />
+      {/* Westin Peachtree */}
+      <rect x="418" y="130" width="44" height="132" fill={accent} opacity="0.52" />
+      <rect x="424" y="118" width="32" height="14" fill={accent} opacity="0.55" />
+      {/* Downtown towers */}
+      <rect x="78" y="180" width="36" height="82" fill={accent} opacity="0.38" />
+      <rect x="124" y="165" width="32" height="97" fill={accent} opacity="0.42" />
+      <rect x="166" y="178" width="40" height="84" fill={accent} opacity="0.38" />
+      <rect x="216" y="168" width="30" height="94" fill={accent} opacity="0.41" />
+      <rect x="256" y="182" width="36" height="80" fill={accent} opacity="0.37" />
+      <rect x="472" y="158" width="38" height="104" fill={accent} opacity="0.43" />
+      <rect x="520" y="172" width="32" height="90" fill={accent} opacity="0.4" />
+      <rect x="562" y="165" width="40" height="97" fill={accent} opacity="0.42" />
+      <rect x="612" y="178" width="28" height="84" fill={accent} opacity="0.38" />
+      <rect x="650" y="168" width="36" height="94" fill={accent} opacity="0.41" />
+      {/* Peachtree trees */}
+      {[[45,258],[740,255]].map(([x,y],i) => (
+        <g key={i}>
+          <rect x={x} y={y-28} width="4" height="28" fill={accent} opacity="0.35" />
+          <ellipse cx={x+2} cy={y-30} rx="10" ry="14" fill={accent} opacity="0.25" />
+        </g>
+      ))}
+      {/* Ground */}
+      <rect x="0" y="262" width="800" height="38" fill={accent} opacity="0.08" />
+    </svg>
+  ),
 };
 
 
@@ -468,6 +759,270 @@ const CITIES = [
       { category: "Food", icon: "🍕", tip: "Deep dish is a special occasion. Real Chicagoans eat thin crust tavern-style." },
     ],
     questions: [{ q: "Best neighborhoods to start in as a newcomer?", a: "Logan Square for creative vibes. Lincoln Park if you want polished. Pilsen for culture and value.", author: "Tom N.", time: "2 weeks ago" }],
+  },
+  {
+    id: "denver", name: "Denver", state: "CO", emoji: "🏔️",
+    accent: "#5B8DB8", accentLight: "#8DBFE0", bg: "#080D14", card: "#0F1820", cardBorder: "#1e3050",
+    textPrimary: "#E8F0F8", textMuted: "rgba(232,240,248,0.52)",
+    displayFont: "'DM Serif Display', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Mile high and just getting started.", vibe: "Outdoorsy & Ambitious",
+    costIndex: "$$", climate: "300 days of sunshine", population: "715K",
+    tags: ["outdoors","tech","food","sports"],
+    mapCenter: [39.7392, -104.9903],
+    neighborhoods: [
+      { name: "RiNo", vibe: "Artsy & trendy", cost: "$$$", pace: "Fast", outdoors: 3, nightlife: 5, family: 2, remote: 4, transit: 3,
+        desc: "River North is Denver's creative explosion — a former industrial district now covered in murals, packed with breweries, galleries, and the city's best restaurants.",
+        tags: ["arts","nightlife","walkable"], lat: 39.7716, lng: -104.9739 },
+      { name: "Capitol Hill", vibe: "Eclectic & diverse", cost: "$$", pace: "Fast", outdoors: 2, nightlife: 4, family: 2, remote: 4, transit: 4,
+        desc: "Denver's most densely populated and diverse neighborhood — Victorian mansions sit next to punk bars and vintage shops on a walkable, electric grid.",
+        tags: ["nightlife","arts","walkable"], lat: 39.7322, lng: -104.9771 },
+      { name: "Washington Park", vibe: "Active & family-friendly", cost: "$$$", pace: "Medium", outdoors: 5, nightlife: 2, family: 5, remote: 4, transit: 2,
+        desc: "Wash Park is Denver's most beloved neighborhood — anchored by a stunning 165-acre park with two lakes, tennis courts, and the city's best jogging paths.",
+        tags: ["outdoors","family","community"], lat: 39.7085, lng: -104.9617 },
+      { name: "Highland", vibe: "Polished & social", cost: "$$$", pace: "Medium", outdoors: 3, nightlife: 4, family: 3, remote: 4, transit: 3,
+        desc: "LoHi (Lower Highland) is Denver's foodie capital — a hilly neighborhood just northwest of downtown with sweeping city views and some of the best restaurants in the state.",
+        tags: ["food","nightlife","upscale"], lat: 39.7578, lng: -105.0083 },
+      { name: "Five Points", vibe: "Historic & evolving", cost: "$$", pace: "Medium", outdoors: 2, nightlife: 4, family: 3, remote: 4, transit: 4,
+        desc: "Once called the 'Harlem of the West,' Five Points is Denver's historically Black cultural heart — now resurging with jazz history, new restaurants, and community energy.",
+        tags: ["arts","community","historic"], lat: 39.7587, lng: -104.9711 },
+    ],
+    tips: [
+      { category: "Altitude", icon: "🏔️", tip: "You're at 5,280 feet. Drink more water than you think, go easy on alcohol your first week." },
+      { category: "Outdoors", icon: "🎿", tip: "A ski pass is a lifestyle investment here. Ikon or Epic pass gets you to the mountains in 90 min." },
+      { category: "Getting Around", icon: "🚗", tip: "The RTD light rail is solid downtown but you'll want a car for mountain access." },
+    ],
+    questions: [{ q: "Is Denver worth it despite rising costs?", a: "For outdoor lifestyle, still yes. Prices have risen sharply but salaries have too. Pick the right neighborhood.", author: "Jake M.", time: "1 week ago" }],
+  },
+  {
+    id: "nashville", name: "Nashville", state: "TN", emoji: "🎸",
+    accent: "#C4872A", accentLight: "#E8B86D", bg: "#110C04", card: "#1E1508", cardBorder: "#3d2a10",
+    textPrimary: "#F5EDD8", textMuted: "rgba(245,237,216,0.52)",
+    displayFont: "'Playfair Display', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Music City never stops playing.", vibe: "Soulful & Explosive",
+    costIndex: "$$", climate: "Mild & humid", population: "689K",
+    tags: ["music","food","nightlife","growth"],
+    mapCenter: [36.1627, -86.7816],
+    neighborhoods: [
+      { name: "East Nashville", vibe: "Creative & cool", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 4, family: 3, remote: 5, transit: 2,
+        desc: "East Nashville is what the city looked like before the bachelorette parties took over — genuine, creative, and home to Nashville's best independent restaurants and musicians.",
+        tags: ["arts","food","community"], lat: 36.1748, lng: -86.7441 },
+      { name: "The Gulch", vibe: "Upscale & modern", cost: "$$$", pace: "Fast", outdoors: 2, nightlife: 4, family: 2, remote: 4, transit: 3,
+        desc: "The Gulch is Nashville's sleekest neighborhood — a LEED-certified walkable district with luxury towers, rooftop bars, and some of the best brunches in the city.",
+        tags: ["upscale","nightlife","walkable"], lat: 36.1498, lng: -86.7892 },
+      { name: "12 South", vibe: "Charming & walkable", cost: "$$$", pace: "Medium", outdoors: 3, nightlife: 3, family: 4, remote: 4, transit: 2,
+        desc: "Nashville's most photogenic neighborhood — a tree-lined street of boutiques, coffee shops, and restaurants that feels genuinely neighborly despite its Instagram fame.",
+        tags: ["walkable","food","community"], lat: 36.1312, lng: -86.7924 },
+      { name: "Germantown", vibe: "Historic & refined", cost: "$$$", pace: "Slow", outdoors: 2, nightlife: 3, family: 3, remote: 5, transit: 3,
+        desc: "Nashville's oldest neighborhood — Germantown is a collection of beautifully restored Victorian homes turned boutique hotels, acclaimed restaurants, and quiet cobblestone streets.",
+        tags: ["historic","food","quiet"], lat: 36.1759, lng: -86.7897 },
+      { name: "Sylvan Park", vibe: "Residential & relaxed", cost: "$$", pace: "Slow", outdoors: 4, nightlife: 2, family: 5, remote: 5, transit: 2,
+        desc: "The city's best-kept secret for families — Sylvan Park is a tight-knit community of bungalows, great schools, and dog-friendly parks without the downtown chaos.",
+        tags: ["family","quiet","community"], lat: 36.1523, lng: -86.8289 },
+    ],
+    tips: [
+      { category: "Music", icon: "🎵", tip: "Broadway honky-tonks are for tourists. Bluebird Cafe and Station Inn are where the real talent plays." },
+      { category: "Getting Around", icon: "🚗", tip: "Nashville has almost no public transit. A car is non-negotiable." },
+      { category: "Growth", icon: "📈", tip: "The city is growing fast — traffic is real. Pick your neighborhood carefully relative to your job." },
+    ],
+    questions: [{ q: "Is Nashville just a party city or is there real community?", a: "Totally depends on the neighborhood. East Nashville and Sylvan Park feel nothing like Broadway.", author: "Claire B.", time: "4 days ago" }],
+  },
+  {
+    id: "miami", name: "Miami", state: "FL", emoji: "🌴",
+    accent: "#E05A8A", accentLight: "#F09AB8", bg: "#0D0810", card: "#18101A", cardBorder: "#3a1e35",
+    textPrimary: "#F8EEF4", textMuted: "rgba(248,238,244,0.52)",
+    displayFont: "'EB Garamond', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Where the ocean meets ambition.", vibe: "Electric & International",
+    costIndex: "$$$", climate: "Hot & tropical year-round", population: "442K",
+    tags: ["beach","nightlife","food","international"],
+    mapCenter: [25.7617, -80.1918],
+    neighborhoods: [
+      { name: "Wynwood", vibe: "Artsy & electric", cost: "$$$", pace: "Fast", outdoors: 2, nightlife: 5, family: 2, remote: 4, transit: 2,
+        desc: "Wynwood is Miami's open-air art museum — a former warehouse district transformed into the world's largest outdoor mural installation, packed with galleries, bars, and restaurants.",
+        tags: ["arts","nightlife","walkable"], lat: 25.8008, lng: -80.1993 },
+      { name: "Brickell", vibe: "Sleek & financial", cost: "$$$", pace: "Fast", outdoors: 2, nightlife: 4, family: 2, remote: 4, transit: 4,
+        desc: "Miami's Manhattan — a dense corridor of glass towers, finance firms, and rooftop bars. The most walkable and transit-friendly part of Miami.",
+        tags: ["upscale","nightlife","walkable"], lat: 25.7584, lng: -80.1936 },
+      { name: "Coconut Grove", vibe: "Lush & laid-back", cost: "$$$", pace: "Slow", outdoors: 5, nightlife: 3, family: 4, remote: 4, transit: 2,
+        desc: "Miami's oldest neighborhood feels like a bohemian village — shaded by a canopy of banyan trees, dotted with marinas, and home to a surprisingly calm, community-focused vibe.",
+        tags: ["outdoors","community","quiet"], lat: 25.7274, lng: -80.2381 },
+      { name: "Little Havana", vibe: "Cultural & vibrant", cost: "$", pace: "Medium", outdoors: 2, nightlife: 3, family: 4, remote: 3, transit: 3,
+        desc: "The soul of Miami's Cuban community — Calle Ocho is alive with domino parks, cigar rollers, excellent Cuban food, and a cultural richness found nowhere else in the US.",
+        tags: ["community","food","arts"], lat: 25.7680, lng: -80.2280 },
+      { name: "South Beach", vibe: "Glamorous & touristy", cost: "$$$", pace: "Fast", outdoors: 5, nightlife: 5, family: 1, remote: 2, transit: 3,
+        desc: "Art Deco architecture, white sand, and neon nights — South Beach is exactly what you've seen in movies. Living here means choosing the show over the quiet.",
+        tags: ["nightlife","beach","arts"], lat: 25.7826, lng: -80.1340 },
+    ],
+    tips: [
+      { category: "Heat", icon: "☀️", tip: "June–September is brutal. AC is not optional, it's infrastructure." },
+      { category: "Traffic", icon: "🚗", tip: "I-95 is a parking lot at rush hour. Build your commute around it or go car-free in Brickell." },
+      { category: "Culture", icon: "🌍", tip: "Spanish is genuinely useful here — about 70% of Miami speaks it as a first language." },
+    ],
+    questions: [{ q: "Can you actually afford to live in Miami right now?", a: "Getting harder. Look at Little Havana, Allapattah, or Little River for relative value.", author: "Sofia R.", time: "3 days ago" }],
+  },
+  {
+    id: "nyc", name: "New York City", state: "NY", emoji: "🗽",
+    accent: "#E8C840", accentLight: "#F5E27A", bg: "#080808", card: "#111111", cardBorder: "#2a2a2a",
+    textPrimary: "#F5F5F0", textMuted: "rgba(245,245,240,0.52)",
+    displayFont: "'Libre Baskerville', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "If you can make it here, you can make it anywhere.", vibe: "Relentless & Iconic",
+    costIndex: "$$$", climate: "Four true seasons", population: "8.3M",
+    tags: ["culture","food","nightlife","career"],
+    mapCenter: [40.7128, -74.0060],
+    neighborhoods: [
+      { name: "Astoria", vibe: "Diverse & accessible", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 3, family: 4, remote: 4, transit: 5,
+        desc: "Queens' most beloved neighborhood — Astoria is where NYC actually lives. Incredible Greek food, a genuinely international mix of residents, and a subway ride from everything.",
+        tags: ["food","community","affordable"], lat: 40.7721, lng: -73.9303 },
+      { name: "Bushwick", vibe: "Creative & gritty", cost: "$$", pace: "Fast", outdoors: 2, nightlife: 5, family: 2, remote: 4, transit: 4,
+        desc: "Brooklyn's art and party capital — Bushwick is where artists, musicians, and young creatives land when Manhattan prices push them out. Raw, alive, and constantly evolving.",
+        tags: ["arts","nightlife","community"], lat: 40.6944, lng: -73.9213 },
+      { name: "Park Slope", vibe: "Polished & family", cost: "$$$", pace: "Slow", outdoors: 5, nightlife: 2, family: 5, remote: 5, transit: 4,
+        desc: "Brooklyn's most family-oriented neighborhood — beautifully maintained brownstones, Prospect Park at your doorstep, and some of the best schools in the borough.",
+        tags: ["family","outdoors","upscale"], lat: 40.6681, lng: -73.9803 },
+      { name: "Harlem", vibe: "Historic & evolving", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 4, family: 4, remote: 4, transit: 5,
+        desc: "Harlem is NYC history made physical — the Apollo, Marcus Garvey Park, soul food institutions, and a neighborhood in the middle of a major renaissance with Central Park at its edge.",
+        tags: ["historic","arts","community"], lat: 40.8116, lng: -73.9465 },
+      { name: "Williamsburg", vibe: "Trendy & social", cost: "$$$", pace: "Fast", outdoors: 3, nightlife: 5, family: 2, remote: 4, transit: 4,
+        desc: "The original gentrification case study — Williamsburg is still one of Brooklyn's most electric neighborhoods. Waterfront views, incredible food, and the L train to Manhattan.",
+        tags: ["nightlife","food","arts"], lat: 40.7081, lng: -73.9571 },
+    ],
+    tips: [
+      { category: "Transit", icon: "🚇", tip: "Get a MetroCard or tap your card. Walking + subway is the best way to live here — skip the car." },
+      { category: "Cost", icon: "💰", tip: "Budget for broker fees when apartment hunting — usually one month's rent. It's brutal but expected." },
+      { category: "Community", icon: "🤝", tip: "NYC can feel lonely at first. Find your block, your coffee shop, your regular spot — it opens up fast." },
+    ],
+    questions: [{ q: "Is NYC actually worth the cost in 2025?", a: "For career acceleration and culture, still unmatched. Quality of life depends entirely on your borough and block.", author: "Marcus T.", time: "2 days ago" }],
+  },
+  {
+    id: "la", name: "Los Angeles", state: "CA", emoji: "🎬",
+    accent: "#D4762A", accentLight: "#EEA96A", bg: "#0F0A06", card: "#1A1108", cardBorder: "#3a2510",
+    textPrimary: "#F5EDE0", textMuted: "rgba(245,237,224,0.52)",
+    displayFont: "'Playfair Display', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Every stranger is a story waiting to happen.", vibe: "Sprawling & Dreamy",
+    costIndex: "$$$", climate: "Sunny & perfect almost always", population: "3.9M",
+    tags: ["entertainment","food","outdoors","beach"],
+    mapCenter: [34.0522, -118.2437],
+    neighborhoods: [
+      { name: "Silver Lake", vibe: "Creative & laid-back", cost: "$$$", pace: "Medium", outdoors: 4, nightlife: 3, family: 3, remote: 5, transit: 2,
+        desc: "LA's creative heartbeat — Silver Lake is where musicians, designers, and writers settled when Echo Park got too expensive. Walkable (for LA), beautiful, and full of character.",
+        tags: ["arts","community","food"], lat: 34.0869, lng: -118.2706 },
+      { name: "Venice", vibe: "Beach & bohemian", cost: "$$$", pace: "Medium", outdoors: 5, nightlife: 3, family: 3, remote: 4, transit: 2,
+        desc: "Ocean Front Walk, Abbot Kinney boutiques, and a boardwalk circus that never sleeps. Venice is LA's most distinctive neighborhood — weird, expensive, and addictive.",
+        tags: ["beach","arts","community"], lat: 33.9850, lng: -118.4695 },
+      { name: "Los Feliz", vibe: "Intellectual & charming", cost: "$$$", pace: "Slow", outdoors: 4, nightlife: 3, family: 4, remote: 5, transit: 2,
+        desc: "Griffith Park, beautiful pre-war architecture, and a walkable village feel rare in LA. Los Feliz is where the city's writers and academics quietly set down roots.",
+        tags: ["outdoors","quiet","arts"], lat: 34.1081, lng: -118.2904 },
+      { name: "Koreatown", vibe: "Dense & 24/7", cost: "$$", pace: "Fast", outdoors: 1, nightlife: 5, family: 2, remote: 3, transit: 4,
+        desc: "The most walkable and transit-connected neighborhood in LA — Koreatown is dense, alive at all hours, and home to the city's best Korean BBQ and karaoke scene.",
+        tags: ["nightlife","food","walkable"], lat: 34.0584, lng: -118.2999 },
+      { name: "Eagle Rock", vibe: "Neighborly & up-and-coming", cost: "$$", pace: "Slow", outdoors: 3, nightlife: 2, family: 5, remote: 5, transit: 2,
+        desc: "Eagle Rock feels like a small town inside a massive city — tight community, great independent coffee shops, and a slower pace that LA transplants fall hard for.",
+        tags: ["family","community","quiet"], lat: 34.1397, lng: -118.2088 },
+    ],
+    tips: [
+      { category: "Traffic", icon: "🚗", tip: "The 405 will humble you. Learn your alternate routes, work from home when possible, and budget 2x commute time." },
+      { category: "Outdoors", icon: "🏄", tip: "The beach, the mountains, the desert — all within 90 minutes. This is the whole point of LA." },
+      { category: "Social", icon: "🤝", tip: "LA doesn't come to you. Join things, say yes to invites, and give it 6 months before judging it." },
+    ],
+    questions: [{ q: "Is the LA lifestyle worth the cost and traffic?", a: "If you're outdoors-driven and career-focused in entertainment/tech/creative — still yes. Otherwise think hard.", author: "Priya N.", time: "5 days ago" }],
+  },
+  {
+    id: "portland", name: "Portland", state: "OR", emoji: "🌲",
+    accent: "#5E9E6A", accentLight: "#94C99E", bg: "#070D09", card: "#0E1810", cardBorder: "#1e3522",
+    textPrimary: "#E4F0E6", textMuted: "rgba(228,240,230,0.52)",
+    displayFont: "'DM Serif Display', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Keep Portland weird — we mean it.", vibe: "Independent & Green",
+    costIndex: "$$", climate: "Lush, rainy, mild", population: "652K",
+    tags: ["outdoors","food","arts","community"],
+    mapCenter: [45.5051, -122.6750],
+    neighborhoods: [
+      { name: "Alberta Arts District", vibe: "Artsy & welcoming", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 3, family: 3, remote: 5, transit: 3,
+        desc: "Northeast Portland's creative corridor — Alberta Street is lined with galleries, murals, independent restaurants, and the kind of block-by-block character that cities try and fail to manufacture.",
+        tags: ["arts","community","food"], lat: 45.5601, lng: -122.6475 },
+      { name: "Pearl District", vibe: "Polished & walkable", cost: "$$$", pace: "Medium", outdoors: 3, nightlife: 3, family: 3, remote: 4, transit: 5,
+        desc: "Portland's most upscale neighborhood — converted warehouses now hold luxury condos, Powell's Books, brewpubs, and galleries on a beautifully walkable grid.",
+        tags: ["walkable","upscale","arts"], lat: 45.5259, lng: -122.6832 },
+      { name: "Hawthorne", vibe: "Bohemian & diverse", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 3, family: 3, remote: 5, transit: 3,
+        desc: "Portland's original weird street — vintage shops, bookstores, vegetarian restaurants, and a street culture that's been authentically alternative since the 1990s.",
+        tags: ["arts","community","walkable"], lat: 45.5120, lng: -122.6323 },
+      { name: "Division Street", vibe: "Foodie & evolving", cost: "$$", pace: "Medium", outdoors: 3, nightlife: 4, family: 3, remote: 4, transit: 3,
+        desc: "Portland's best restaurant row — SE Division has become nationally recognized for its dining scene while remaining genuinely neighborhood-focused and accessible.",
+        tags: ["food","community","arts"], lat: 45.5040, lng: -122.6360 },
+      { name: "St. Johns", vibe: "Quirky & affordable", cost: "$", pace: "Slow", outdoors: 4, nightlife: 2, family: 4, remote: 5, transit: 3,
+        desc: "The most underrated neighborhood in Portland — St. Johns is a small-town main street at the tip of a peninsula, with the stunning Cathedral Park under the St. Johns Bridge.",
+        tags: ["affordable","community","outdoors"], lat: 45.5938, lng: -122.7534 },
+    ],
+    tips: [
+      { category: "Rain", icon: "🌧️", tip: "A quality rain jacket is essential — not an umbrella. You'll get laughed at for the umbrella." },
+      { category: "Food", icon: "🍕", tip: "Portland's food cart scene is world-class. Cartopia and Hawthorne Asylum are musts." },
+      { category: "Outdoors", icon: "🌲", tip: "Mt Hood is 90 minutes away. Columbia River Gorge is 30. This is the whole sell." },
+    ],
+    questions: [{ q: "Is Portland recovering and worth moving to?", a: "The core neighborhoods are vibrant — Alberta, Pearl, Hawthorne all feel strong. Give it a fair look.", author: "Reed H.", time: "1 week ago" }],
+  },
+  {
+    id: "phoenix", name: "Phoenix", state: "AZ", emoji: "☀️",
+    accent: "#E07830", accentLight: "#F0A870", bg: "#100808", card: "#1C1008", cardBorder: "#3a2010",
+    textPrimary: "#F8EEE0", textMuted: "rgba(248,238,224,0.52)",
+    displayFont: "'Libre Baskerville', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "Sun-drenched and endlessly expanding.", vibe: "Sunny & Sprawling",
+    costIndex: "$", climate: "Hot desert — seriously hot", population: "1.6M",
+    tags: ["outdoors","affordable","growth","sports"],
+    mapCenter: [33.4484, -112.0740],
+    neighborhoods: [
+      { name: "Roosevelt Row", vibe: "Artsy & walkable", cost: "$$", pace: "Medium", outdoors: 2, nightlife: 4, family: 2, remote: 5, transit: 3,
+        desc: "Phoenix's arts district — Roosevelt Row is the most walkable, creative block in the city with murals, galleries, and the best bar scene in downtown Phoenix.",
+        tags: ["arts","nightlife","walkable"], lat: 33.4597, lng: -112.0668 },
+      { name: "Scottsdale Old Town", vibe: "Upscale & social", cost: "$$$", pace: "Fast", outdoors: 3, nightlife: 5, family: 2, remote: 3, transit: 2,
+        desc: "Phoenix's playground — Old Town Scottsdale is all rooftop bars, galleries, resort pools, and the kind of nightlife that draws people from across the valley.",
+        tags: ["nightlife","upscale","food"], lat: 33.4942, lng: -111.9261 },
+      { name: "Arcadia", vibe: "Lush & family-friendly", cost: "$$$", pace: "Slow", outdoors: 5, nightlife: 2, family: 5, remote: 4, transit: 2,
+        desc: "Phoenix's greenest neighborhood — Arcadia is defined by irrigated citrus groves, mountain views of Camelback, beautiful ranch homes, and an excellent restaurant scene.",
+        tags: ["family","outdoors","upscale"], lat: 33.4836, lng: -111.9927 },
+      { name: "Tempe", vibe: "Young & energetic", cost: "$", pace: "Fast", outdoors: 3, nightlife: 4, family: 2, remote: 4, transit: 4,
+        desc: "Home to Arizona State University, Tempe is the valley's most walkable and transit-friendly city — a young, affordable, and energetic hub with Tempe Town Lake at its center.",
+        tags: ["nightlife","walkable","affordable"], lat: 33.4255, lng: -111.9400 },
+      { name: "Chandler", vibe: "Suburban & polished", cost: "$$", pace: "Slow", outdoors: 3, nightlife: 2, family: 5, remote: 5, transit: 2,
+        desc: "The valley's most livable suburb — Chandler has excellent schools, a growing tech corridor (Intel, PayPal), and a downtown that's actually worth visiting on weekends.",
+        tags: ["family","tech","quiet"], lat: 33.3062, lng: -111.8413 },
+    ],
+    tips: [
+      { category: "Heat", icon: "🌡️", tip: "June–September you live indoors or in the pool. Plan outdoor activities before 8am or after 7pm." },
+      { category: "Cost", icon: "💰", tip: "Still one of the most affordable major metros in the US — your money genuinely goes further here." },
+      { category: "Car", icon: "🚗", tip: "Phoenix is built for cars. You will need one. Plan your neighborhood around your commute." },
+    ],
+    questions: [{ q: "How do people survive the summer heat?", a: "You adapt faster than you think. AC everywhere, pools everywhere, and Flagstaff is 2 hours away when you need a break.", author: "Dana K.", time: "3 days ago" }],
+  },
+  {
+    id: "atlanta", name: "Atlanta", state: "GA", emoji: "🍑",
+    accent: "#C43C3C", accentLight: "#E07A7A", bg: "#0E0808", card: "#1A1010", cardBorder: "#352020",
+    textPrimary: "#F5EAEA", textMuted: "rgba(245,234,234,0.52)",
+    displayFont: "'EB Garamond', Georgia, serif", bodyFont: "'Source Serif 4', Georgia, serif",
+    tagline: "The city in a forest that never slows down.", vibe: "Ambitious & Cultural",
+    costIndex: "$$", climate: "Warm & humid, mild winters", population: "498K",
+    tags: ["culture","food","music","growth"],
+    mapCenter: [33.7490, -84.3880],
+    neighborhoods: [
+      { name: "Poncey-Highland", vibe: "Creative & walkable", cost: "$$", pace: "Medium", outdoors: 4, nightlife: 3, family: 3, remote: 5, transit: 3,
+        desc: "One of Atlanta's most walkable neighborhoods — Ponce City Market anchors a stretch of the BeltLine trail, great restaurants, and a genuinely mixed and thriving community.",
+        tags: ["food","arts","walkable"], lat: 33.7715, lng: -84.3596 },
+      { name: "Inman Park", vibe: "Historic & charming", cost: "$$$", pace: "Medium", outdoors: 4, nightlife: 3, family: 4, remote: 4, transit: 3,
+        desc: "Atlanta's first planned suburb (1890) is now one of its most beloved neighborhoods — Victorian homes, the BeltLine at your doorstep, and a restaurant scene that punches above its weight.",
+        tags: ["historic","food","walkable"], lat: 33.7565, lng: -84.3555 },
+      { name: "Old Fourth Ward", vibe: "Historic & electric", cost: "$$", pace: "Fast", outdoors: 4, nightlife: 4, family: 3, remote: 4, transit: 4,
+        desc: "MLK's birthplace neighborhood has transformed into Atlanta's trendiest zip code — the BeltLine's Eastside Trail, Ponce City Market, and an electric mix of history and new energy.",
+        tags: ["arts","nightlife","historic"], lat: 33.7573, lng: -84.3712 },
+      { name: "Decatur", vibe: "Walkable & community-driven", cost: "$$", pace: "Slow", outdoors: 3, nightlife: 3, family: 5, remote: 5, transit: 4,
+        desc: "Atlanta's best small-town experience — Decatur is a MARTA-connected city unto itself with award-winning schools, a walkable downtown square, and a genuine sense of community.",
+        tags: ["family","walkable","community"], lat: 33.7748, lng: -84.2963 },
+      { name: "West End", vibe: "Cultural & affordable", cost: "$", pace: "Medium", outdoors: 3, nightlife: 3, family: 3, remote: 4, transit: 4,
+        desc: "Atlanta's historically Black neighborhood is undergoing a remarkable renaissance — the BeltLine's Westside Trail, new restaurants, and deep cultural roots make this one to watch.",
+        tags: ["arts","community","affordable"], lat: 33.7340, lng: -84.4197 },
+    ],
+    tips: [
+      { category: "Traffic", icon: "🚗", tip: "I-285 and I-75/85 will test your patience daily. MARTA is underrated — use it if you can." },
+      { category: "BeltLine", icon: "🚶", tip: "The Atlanta BeltLine is transformative. Pick a neighborhood on or near it and your quality of life goes up." },
+      { category: "Food", icon: "🍑", tip: "Atlanta's food scene is legitimately world-class. Buford Highway alone is worth moving for." },
+    ],
+    questions: [{ q: "Is Atlanta as traffic-heavy as people say?", a: "Yes. But if you pick the right neighborhood and use MARTA, it's very manageable.", author: "James P.", time: "6 days ago" }],
   },
 ];
 
