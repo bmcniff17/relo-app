@@ -1375,12 +1375,29 @@ function KnowPath({ onBack }) {
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         {(n.tags || []).slice(0,3).map(t => <span key={t} style={{ fontSize: "9px", padding: "1px 7px", border: `1px solid ${c.accent}33`, color: c.accentLight, opacity: 0.7 }}>{t}</span>)}
                       </div>
-                      <button
-                        onClick={() => setNeighborhoodPage(n.name)}
-                        style={{ background: "transparent", border: `1px solid ${c.accent}55`, color: c.accentLight, padding: "5px 14px", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", cursor: "pointer", fontFamily: c.bodyFont, transition: "all 0.15s", whiteSpace: "nowrap" }}
-                        onMouseEnter={e => { e.currentTarget.style.background = `${c.accent}22`; e.currentTarget.style.borderColor = c.accent; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${c.accent}55`; }}
-                      >Full Guide →</button>
+                      <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+                        <button onClick={e => {
+                          e.stopPropagation();
+                          try {
+                            const saved = JSON.parse(localStorage.getItem("relo_neighborhoods")||"[]");
+                            if (!saved.find(s => s.name === n.name)) {
+                              localStorage.setItem("relo_neighborhoods", JSON.stringify([...saved, { name:n.name, city:c.name, vibe:n.vibe, cost:n.cost }]));
+                              e.currentTarget.textContent = "✓ Saved";
+                              e.currentTarget.style.color = "#4caf50";
+                              e.currentTarget.style.borderColor = "#4caf50";
+                            }
+                          } catch {}
+                        }}
+                          style={{ background:"transparent", border:`1px solid ${c.cardBorder}`, color:c.textMuted, padding:"5px 10px", fontSize:"10px", cursor:"pointer", fontFamily:c.bodyFont }}>
+                          🔖 Save
+                        </button>
+                        <button
+                          onClick={() => setNeighborhoodPage(n.name)}
+                          style={{ background: "transparent", border: `1px solid ${c.accent}55`, color: c.accentLight, padding: "5px 14px", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", cursor: "pointer", fontFamily: c.bodyFont, transition: "all 0.15s", whiteSpace: "nowrap" }}
+                          onMouseEnter={e => { e.currentTarget.style.background = `${c.accent}22`; e.currentTarget.style.borderColor = c.accent; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${c.accent}55`; }}
+                        >Full Guide →</button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -2388,12 +2405,27 @@ function ApartmentsTab({ apartments, stats, neighborhood, city }) {
               <span>📐 {apt.sqft?.toLocaleString()} sqft</span>
             </div>
             {apt.features?.length > 0 && (
-              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
+              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap", marginBottom:"10px" }}>
                 {apt.features.map((f,j) => (
                   <span key={j} style={{ fontSize:"10px", padding:"2px 8px", background:city.bg, border:`1px solid ${city.cardBorder}`, color:city.textMuted }}>{f}</span>
                 ))}
               </div>
             )}
+            <button onClick={e => {
+              e.stopPropagation();
+              try {
+                const saved = JSON.parse(localStorage.getItem("relo_apartments")||"[]");
+                const id = `${apt.name}-${apt.address}`;
+                if (!saved.find(s => s.id === id)) {
+                  localStorage.setItem("relo_apartments", JSON.stringify([...saved, { ...apt, id }]));
+                  e.currentTarget.textContent = "✓ Saved to planner";
+                  e.currentTarget.style.color = "#4caf50";
+                  e.currentTarget.style.borderColor = "#4caf50";
+                }
+              } catch {}
+            }} style={{ background:"transparent", border:`1px solid ${city.cardBorder}`, color:city.textMuted, padding:"5px 12px", fontSize:"10px", cursor:"pointer", fontFamily:city.bodyFont, letterSpacing:"1px" }}>
+              🔖 Save to My Move
+            </button>
           </div>
         ))}
       </div>
@@ -2649,18 +2681,345 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
   );
 }
 
+// ── Relocation Dashboard ──────────────────────────────────────────────────────
+const DEFAULT_CHECKLIST = [
+  { id:"dl", category:"Legal", task:"Update driver's license", done:false },
+  { id:"vote", category:"Legal", task:"Update voter registration", done:false },
+  { id:"irs", category:"Legal", task:"Update address with IRS", done:false },
+  { id:"ss", category:"Legal", task:"Update address with Social Security", done:false },
+  { id:"bank", category:"Finance", task:"Update bank address", done:false },
+  { id:"cc", category:"Finance", task:"Update credit card addresses", done:false },
+  { id:"insure", category:"Finance", task:"Update insurance policies", done:false },
+  { id:"employer", category:"Work", task:"Notify employer of new address", done:false },
+  { id:"usps", category:"Moving", task:"Set up USPS mail forwarding", done:false },
+  { id:"movers", category:"Moving", task:"Book moving company", done:false },
+  { id:"car", category:"Moving", task:"Arrange car shipping (if needed)", done:false },
+  { id:"storage", category:"Moving", task:"Book storage if needed", done:false },
+  { id:"electric", category:"Utilities", task:"Set up electricity", done:false },
+  { id:"gas", category:"Utilities", task:"Set up gas", done:false },
+  { id:"internet", category:"Utilities", task:"Set up internet", done:false },
+  { id:"water", category:"Utilities", task:"Set up water account", done:false },
+  { id:"doctor", category:"Health", task:"Find new primary care doctor", done:false },
+  { id:"dentist", category:"Health", task:"Find new dentist", done:false },
+  { id:"prescriptions", category:"Health", task:"Transfer prescriptions", done:false },
+  { id:"school", category:"Family", task:"Research/enroll in schools", done:false },
+  { id:"pets", category:"Family", task:"Update pet microchip address", done:false },
+];
+
+const BUDGET_CATEGORIES = ["Moving Company","Car Shipping","First/Last Month Rent","Security Deposit","Flights","Temporary Housing","Storage","Furniture","Utilities Setup","Misc"];
+
+function useLocalStorage(key, defaultVal) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : defaultVal; } catch { return defaultVal; }
+  });
+  const set = v => { setVal(v); try { localStorage.setItem(key, JSON.stringify(v)); } catch {} };
+  return [val, set];
+}
+
+function RelocationDashboard({ onClose, cities }) {
+  const [activeTab, setActiveTab] = useState("timeline");
+  const [moveDate, setMoveDate] = useLocalStorage("relo_moveDate", "");
+  const [moveCity, setMoveCity] = useLocalStorage("relo_moveCity", "");
+  const [checklist, setChecklist] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
+  const [savedNeighborhoods, setSavedNeighborhoods] = useLocalStorage("relo_neighborhoods", []);
+  const [savedApartments, setSavedApartments] = useLocalStorage("relo_apartments", []);
+  const [budget, setBudget] = useLocalStorage("relo_budget", { total: 10000, expenses: [] });
+  const [newExpense, setNewExpense] = useState({ label:"", category: BUDGET_CATEGORIES[0], amount:"" });
+  const [newTask, setNewTask] = useState("");
+
+  const daysUntilMove = moveDate ? Math.ceil((new Date(moveDate) - new Date()) / (1000*60*60*24)) : null;
+  const checkDone = checklist.filter(c => c.done).length;
+  const totalSpent = budget.expenses.reduce((a,b) => a + (b.amount||0), 0);
+  const remaining = budget.total - totalSpent;
+
+  const toggleCheck = id => setChecklist(checklist.map(c => c.id === id ? {...c, done:!c.done} : c));
+  const addTask = () => {
+    if (!newTask.trim()) return;
+    setChecklist([...checklist, { id: Date.now().toString(), category:"Custom", task:newTask.trim(), done:false }]);
+    setNewTask("");
+  };
+  const addExpense = () => {
+    if (!newExpense.label || !newExpense.amount) return;
+    setBudget({ ...budget, expenses: [...budget.expenses, { ...newExpense, amount: parseFloat(newExpense.amount), id: Date.now() }] });
+    setNewExpense({ label:"", category:BUDGET_CATEGORIES[0], amount:"" });
+  };
+  const removeExpense = id => setBudget({ ...budget, expenses: budget.expenses.filter(e => e.id !== id) });
+  const removeNeighborhood = name => setSavedNeighborhoods(savedNeighborhoods.filter(n => n.name !== name));
+  const removeApartment = id => setSavedApartments(savedApartments.filter(a => a.id !== id));
+
+  // Timeline milestones based on move date
+  const milestones = moveDate ? (() => {
+    const d = new Date(moveDate);
+    const weeks = (n) => { const x = new Date(d); x.setDate(x.getDate() - n*7); return x.toLocaleDateString("en-US",{month:"short",day:"numeric"}); };
+    return [
+      { label:"Research neighborhoods & apartments", date: weeks(12), done: daysUntilMove < 84 },
+      { label:"Book movers / car shipping", date: weeks(8), done: daysUntilMove < 56 },
+      { label:"Give notice at current place", date: weeks(6), done: daysUntilMove < 42 },
+      { label:"Set up USPS mail forwarding", date: weeks(4), done: daysUntilMove < 28 },
+      { label:"Transfer utilities & services", date: weeks(3), done: daysUntilMove < 21 },
+      { label:"Pack non-essentials", date: weeks(2), done: daysUntilMove < 14 },
+      { label:"Confirm all bookings", date: weeks(1), done: daysUntilMove < 7 },
+      { label:"🎉 Move day!", date: new Date(moveDate).toLocaleDateString("en-US",{month:"short",day:"numeric"}), done: daysUntilMove <= 0 },
+    ];
+  })() : [];
+
+  const tabs = [
+    { id:"timeline", label:"🗓 Timeline" },
+    { id:"checklist", label:"✅ Checklist" },
+    { id:"neighborhoods", label:"🏘 Saved" },
+    { id:"budget", label:"💰 Budget" },
+  ];
+
+  const checklistByCategory = checklist.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {});
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:200, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", padding:"16px" }} onClick={onClose}>
+      <div style={{ background:"#0a0c14", border:"1px solid #2a2a3a", width:"100%", maxWidth:"780px", maxHeight:"90vh", display:"flex", flexDirection:"column", overflow:"hidden" }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding:"20px 24px 0", borderBottom:"1px solid #1a1a2a", flexShrink:0 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px" }}>
+            <div>
+              <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"4px" }}>My Relocation</div>
+              <div style={{ fontSize:"22px", fontFamily:"Georgia,serif", color:"#fff" }}>
+                {moveCity ? `Moving to ${moveCity}` : "Relocation Planner"}
+              </div>
+              {daysUntilMove !== null && (
+                <div style={{ fontSize:"12px", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", marginTop:"4px" }}>
+                  {daysUntilMove <= 0 ? "Move day is here!" : `${daysUntilMove} days until move`}
+                </div>
+              )}
+            </div>
+            <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+              {/* Quick stats */}
+              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"8px 14px" }}>
+                <div style={{ fontSize:"16px", fontFamily:"Georgia,serif", color:"#4caf50" }}>{checkDone}/{checklist.length}</div>
+                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>TASKS</div>
+              </div>
+              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"8px 14px" }}>
+                <div style={{ fontSize:"16px", fontFamily:"Georgia,serif", color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${remaining.toLocaleString()}</div>
+                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>LEFT</div>
+              </div>
+              <button onClick={onClose} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer", fontSize:"16px" }}>×</button>
+            </div>
+          </div>
+
+          {/* Move Setup Bar */}
+          <div style={{ display:"flex", gap:"10px", marginBottom:"16px", flexWrap:"wrap" }}>
+            <select value={moveCity} onChange={e => setMoveCity(e.target.value)}
+              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity ? "#fff" : "rgba(255,255,255,0.4)", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer", flex:"1 1 140px" }}>
+              <option value="">Select destination city...</option>
+              {cities.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
+            </select>
+            <input type="date" value={moveDate} onChange={e => setMoveDate(e.target.value)}
+              style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px", flex:"1 1 140px" }} />
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display:"flex", gap:"0" }}>
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)}
+                style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"10px 16px", fontSize:"11px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ overflowY:"auto", flex:1, padding:"20px 24px 24px" }}>
+
+          {/* ── Timeline ── */}
+          {activeTab === "timeline" && (
+            <div>
+              {!moveDate ? (
+                <div style={{ textAlign:"center", padding:"40px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>Set your move date above to generate your timeline</div>
+              ) : (
+                <div style={{ position:"relative" }}>
+                  <div style={{ position:"absolute", left:"13px", top:0, bottom:0, width:"2px", background:"#2a2a3a" }} />
+                  {milestones.map((m,i) => (
+                    <div key={i} style={{ display:"flex", gap:"16px", marginBottom:"16px", alignItems:"flex-start" }}>
+                      <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: m.done ? "#4caf50" : "#1a1a2e", border:`2px solid ${m.done ? "#4caf50" : "#2a2a3a"}`, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", zIndex:1 }}>
+                        {m.done ? "✓" : ""}
+                      </div>
+                      <div style={{ background:"#111", border:`1px solid ${m.done ? "#4caf5033" : "#2a2a3a"}`, padding:"12px 16px", flex:1 }}>
+                        <div style={{ fontSize:"13px", color: m.done ? "rgba(255,255,255,0.5)" : "#fff", textDecoration: m.done ? "line-through" : "none", marginBottom:"3px" }}>{m.label}</div>
+                        <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)" }}>{m.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Checklist ── */}
+          {activeTab === "checklist" && (
+            <div>
+              <div style={{ display:"flex", gap:"8px", marginBottom:"20px" }}>
+                <input value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => e.key==="Enter" && addTask()}
+                  placeholder="Add a custom task..."
+                  style={{ flex:1, background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 12px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                <button onClick={addTask} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"8px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px" }}>Add</button>
+              </div>
+              <div style={{ marginBottom:"8px", fontSize:"12px", color:"rgba(255,255,255,0.4)" }}>{checkDone} of {checklist.length} completed</div>
+              <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px", marginBottom:"20px" }}>
+                <div style={{ height:"100%", width:`${(checkDone/checklist.length)*100}%`, background:"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+              </div>
+              {Object.entries(checklistByCategory).map(([cat, items]) => (
+                <div key={cat} style={{ marginBottom:"20px" }}>
+                  <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"8px" }}>{cat}</div>
+                  <div style={{ display:"grid", gap:"6px" }}>
+                    {items.map(item => (
+                      <div key={item.id} onClick={() => toggleCheck(item.id)}
+                        style={{ display:"flex", alignItems:"center", gap:"12px", background:"#111", border:`1px solid ${item.done ? "#4caf5033" : "#2a2a3a"}`, padding:"10px 14px", cursor:"pointer", transition:"all 0.15s" }}>
+                        <div style={{ width:"18px", height:"18px", borderRadius:"3px", border:`2px solid ${item.done ? "#4caf50" : "#3a3a4a"}`, background: item.done ? "#4caf50" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", color:"#fff" }}>
+                          {item.done ? "✓" : ""}
+                        </div>
+                        <span style={{ fontSize:"13px", color: item.done ? "rgba(255,255,255,0.4)" : "#fff", textDecoration: item.done ? "line-through" : "none" }}>{item.task}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Saved Neighborhoods & Apartments ── */}
+          {activeTab === "neighborhoods" && (
+            <div>
+              <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"12px" }}>Saved Neighborhoods</div>
+              {savedNeighborhoods.length === 0 ? (
+                <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"24px", textAlign:"center", color:"rgba(255,255,255,0.35)", fontSize:"13px", marginBottom:"24px" }}>
+                  No saved neighborhoods yet — browse a city and click the bookmark icon
+                </div>
+              ) : (
+                <div style={{ display:"grid", gap:"8px", marginBottom:"24px" }}>
+                  {savedNeighborhoods.map((n,i) => (
+                    <div key={i} style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div>
+                        <div style={{ fontSize:"14px", color:"#fff", fontFamily:"Georgia,serif", marginBottom:"3px" }}>{n.name}</div>
+                        <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>{n.city} · {n.vibe} · {n.cost}</div>
+                      </div>
+                      <button onClick={() => removeNeighborhood(n.name)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"12px" }}>Saved Apartments</div>
+              {savedApartments.length === 0 ? (
+                <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"24px", textAlign:"center", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>
+                  No saved apartments yet — browse the Apartments tab and click the bookmark icon
+                </div>
+              ) : (
+                <div style={{ display:"grid", gap:"8px" }}>
+                  {savedApartments.map((a,i) => (
+                    <div key={i} style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div>
+                        <div style={{ fontSize:"14px", color:"#fff", fontFamily:"Georgia,serif", marginBottom:"3px" }}>{a.name}</div>
+                        <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>{a.address} · {a.beds === 0 ? "Studio" : `${a.beds}BR`} · {a.rent}</div>
+                      </div>
+                      <button onClick={() => removeApartment(a.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Budget ── */}
+          {activeTab === "budget" && (
+            <div>
+              {/* Total Budget Setting */}
+              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"16px", marginBottom:"20px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"6px" }}>Total Relocation Budget</div>
+                <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+                  <span style={{ color:"rgba(255,255,255,0.5)", fontSize:"16px" }}>$</span>
+                  <input type="number" value={budget.total} onChange={e => setBudget({...budget, total: parseFloat(e.target.value)||0})}
+                    style={{ background:"transparent", border:"none", borderBottom:"1px solid #3a3a4a", color:"#fff", fontSize:"22px", fontFamily:"Georgia,serif", width:"140px", padding:"4px 0" }} />
+                </div>
+                <div style={{ marginTop:"12px", height:"6px", background:"#1a1a2a", borderRadius:"3px" }}>
+                  <div style={{ height:"100%", width:`${Math.min(100,(totalSpent/budget.total)*100)}%`, background: remaining < 0 ? "#f44336" : remaining < budget.total*0.2 ? "#ff9800" : "#4caf50", borderRadius:"3px", transition:"width 0.3s" }} />
+                </div>
+                <div style={{ display:"flex", justifyContent:"space-between", marginTop:"8px", fontSize:"12px" }}>
+                  <span style={{ color:"rgba(255,255,255,0.4)" }}>Spent: ${totalSpent.toLocaleString()}</span>
+                  <span style={{ color: remaining >= 0 ? "#4caf50" : "#f44336" }}>Remaining: ${remaining.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Add Expense */}
+              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", marginBottom:"20px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"10px" }}>Add Expense</div>
+                <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                  <input value={newExpense.label} onChange={e => setNewExpense({...newExpense, label:e.target.value})}
+                    placeholder="Description"
+                    style={{ flex:"2 1 120px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                  <select value={newExpense.category} onChange={e => setNewExpense({...newExpense, category:e.target.value})}
+                    style={{ flex:"1 1 120px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 8px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
+                    {BUDGET_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount:e.target.value})}
+                    placeholder="Amount $"
+                    style={{ flex:"1 1 80px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                  <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>+ Add</button>
+                </div>
+              </div>
+
+              {/* Expense List */}
+              {budget.expenses.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"32px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>No expenses tracked yet</div>
+              ) : (
+                <div style={{ display:"grid", gap:"6px" }}>
+                  {budget.expenses.map(e => (
+                    <div key={e.id} style={{ display:"flex", alignItems:"center", gap:"12px", background:"#111", border:"1px solid #2a2a3a", padding:"10px 14px" }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:"13px", color:"#fff" }}>{e.label}</div>
+                        <div style={{ fontSize:"10px", color:"rgba(255,255,255,0.35)", marginTop:"2px" }}>{e.category}</div>
+                      </div>
+                      <div style={{ fontSize:"15px", color:"#fff", fontFamily:"Georgia,serif" }}>${(e.amount||0).toLocaleString()}</div>
+                      <button onClick={() => removeExpense(e.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"12px" }}>×</button>
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", justifyContent:"flex-end", padding:"10px 14px", borderTop:"1px solid #2a2a3a", marginTop:"4px" }}>
+                    <span style={{ fontSize:"15px", color:"#fff", fontFamily:"Georgia,serif" }}>Total: ${totalSpent.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("entry");
   const [showCoL, setShowCoL] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   return (
     <>
       {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
-      {/* Floating CoL Button */}
-      <button onClick={() => setShowCoL(true)}
-        style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:50, background:"#1a1a2e", border:"1px solid #3a3a5a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
-        💰 Cost of Living
-      </button>
+      {showDashboard && <RelocationDashboard onClose={() => setShowDashboard(false)} cities={CITIES} />}
+
+      {/* Floating Buttons */}
+      <div style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:50, display:"flex", flexDirection:"column", gap:"10px", alignItems:"flex-end" }}>
+        <button onClick={() => setShowDashboard(true)}
+          style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
+          📋 My Move
+        </button>
+        <button onClick={() => setShowCoL(true)}
+          style={{ background:"#1a1a2e", border:"1px solid #3a3a5a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
+          💰 Cost of Living
+        </button>
+      </div>
+
       {screen === "entry" && <SplitEntry onKnow={() => setScreen("know")} onExplore={() => setScreen("explore")} />}
       {screen === "know" && <KnowPath onBack={() => setScreen("entry")} />}
       {screen === "explore" && <ExplorePath onBack={() => setScreen("entry")} />}
