@@ -1987,6 +1987,298 @@ function PlaceDetailPanel({ item, placeType, neighborhood, city, onClose }) {
   );
 }
 
+// ── Jobs Tab ──────────────────────────────────────────────────────────────────
+function JobsTab({ jobs, city }) {
+  if (!jobs) return <div style={{ padding:"32px", textAlign:"center", color:city.textMuted, fontSize:"13px" }}>Job market data loading…</div>;
+  const growthColor = { high:"#4caf50", medium:city.accent, low:"#f44336" };
+  return (
+    <div>
+      {/* Summary + Stats */}
+      <div style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${city.accent}`, padding:"16px 20px", marginBottom:"16px" }}>
+        <p style={{ margin:"0 0 12px", fontSize:"13px", color:city.textMuted, lineHeight:"1.7" }}>{jobs.jobMarketSummary}</p>
+        <div style={{ display:"flex", gap:"20px", flexWrap:"wrap" }}>
+          <div><div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"3px" }}>Avg Household Income</div><div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accent }}>{jobs.avgHouseholdIncome}</div></div>
+          <div><div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"3px" }}>Unemployment Rate</div><div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accent }}>{jobs.unemploymentRate}</div></div>
+        </div>
+      </div>
+      {/* Top Industries */}
+      <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"10px" }}>Top Industries</div>
+      <div style={{ display:"grid", gap:"8px", marginBottom:"20px" }}>
+        {(jobs.topIndustries||[]).map((ind,i) => (
+          <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"8px" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:"14px", fontFamily:city.displayFont, color:city.textPrimary, marginBottom:"3px" }}>{ind.name}</div>
+              <div style={{ fontSize:"12px", color:city.textMuted }}>{ind.desc}</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:"15px", color:city.accent, fontFamily:city.displayFont }}>{ind.avgSalary}</div>
+              <div style={{ fontSize:"9px", padding:"2px 7px", background:growthColor[ind.growth]+"22", color:growthColor[ind.growth], border:`1px solid ${growthColor[ind.growth]}44`, marginTop:"3px", display:"inline-block" }}>{ind.growth} growth</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Top Employers */}
+      <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"10px" }}>Major Employers</div>
+      <div style={{ display:"grid", gap:"8px" }}>
+        {(jobs.topEmployers||[]).map((emp,i) => (
+          <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px" }}>
+            <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"4px" }}>
+              <span style={{ fontSize:"14px", fontFamily:city.displayFont, color:city.textPrimary }}>{emp.name}</span>
+              <span style={{ fontSize:"9px", padding:"2px 7px", border:`1px solid ${city.accent}33`, color:city.accentLight }}>{emp.type}</span>
+            </div>
+            <div style={{ fontSize:"12px", color:city.textMuted }}>{emp.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Schools Tab ───────────────────────────────────────────────────────────────
+function SchoolsTab({ schools, city }) {
+  if (!schools) return <div style={{ padding:"32px", textAlign:"center", color:city.textMuted, fontSize:"13px" }}>School data loading…</div>;
+  const ratingColor = r => r >= 8 ? "#4caf50" : r >= 6 ? city.accent : "#f44336";
+  const Section = ({ title, items, showRating }) => items?.length > 0 ? (
+    <div style={{ marginBottom:"20px" }}>
+      <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"10px" }}>{title}</div>
+      <div style={{ display:"grid", gap:"8px" }}>
+        {items.map((s,i) => (
+          <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"10px" }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:"14px", fontFamily:city.displayFont, color:city.textPrimary, marginBottom:"3px" }}>{s.name}</div>
+              <div style={{ fontSize:"11px", color:city.accentLight, marginBottom:"4px" }}>{s.grades}</div>
+              <div style={{ fontSize:"12px", color:city.textMuted }}>{s.desc}</div>
+            </div>
+            {showRating && s.rating && (
+              <div style={{ textAlign:"center", minWidth:"44px" }}>
+                <div style={{ fontSize:"20px", fontFamily:city.displayFont, color:ratingColor(s.rating) }}>{s.rating}</div>
+                <div style={{ fontSize:"9px", color:city.textMuted }}>/10</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
+  return (
+    <div>
+      <div style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${city.accent}`, padding:"14px 18px", marginBottom:"20px" }}>
+        <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.7" }}>{schools.summary}</p>
+      </div>
+      <Section title="Public Schools" items={schools.public} showRating={true} />
+      <Section title="Private Schools" items={schools.private} showRating={false} />
+      <Section title="Colleges & Universities" items={schools.universities} showRating={false} />
+    </div>
+  );
+}
+
+// ── Community Tab ─────────────────────────────────────────────────────────────
+function CommunityTab({ community, city }) {
+  if (!community) return <div style={{ padding:"32px", textAlign:"center", color:city.textMuted, fontSize:"13px" }}>Community data loading…</div>;
+  return (
+    <div>
+      {/* Summary */}
+      <div style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${city.accent}`, padding:"14px 18px", marginBottom:"20px" }}>
+        <p style={{ margin:0, fontSize:"13px", color:city.textMuted, lineHeight:"1.7" }}>{community.summary}</p>
+      </div>
+      {/* Online Communities */}
+      <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"10px" }}>Online Communities</div>
+      <div style={{ display:"grid", gap:"8px", marginBottom:"20px" }}>
+        {community.subreddit && (
+          <a href={`https://reddit.com/${community.subreddit}`} target="_blank" rel="noopener noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:"12px", background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", textDecoration:"none", transition:"border-color 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.borderColor=city.accent}
+            onMouseLeave={e => e.currentTarget.style.borderColor=city.cardBorder}>
+            <span style={{ fontSize:"20px" }}>🟠</span>
+            <div>
+              <div style={{ fontSize:"13px", color:city.textPrimary, fontFamily:city.displayFont }}>{community.subreddit}</div>
+              <div style={{ fontSize:"11px", color:city.textMuted }}>Reddit community</div>
+            </div>
+            <span style={{ marginLeft:"auto", fontSize:"11px", color:city.accent }}>→</span>
+          </a>
+        )}
+        {(community.facebook||[]).map((g,i) => (
+          <a key={i} href={`https://www.facebook.com/groups/search/results/?q=${encodeURIComponent(g)}`} target="_blank" rel="noopener noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:"12px", background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", textDecoration:"none", transition:"border-color 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.borderColor=city.accent}
+            onMouseLeave={e => e.currentTarget.style.borderColor=city.cardBorder}>
+            <span style={{ fontSize:"20px" }}>🔵</span>
+            <div>
+              <div style={{ fontSize:"13px", color:city.textPrimary, fontFamily:city.displayFont }}>{g}</div>
+              <div style={{ fontSize:"11px", color:city.textMuted }}>Facebook Group</div>
+            </div>
+            <span style={{ marginLeft:"auto", fontSize:"11px", color:city.accent }}>→</span>
+          </a>
+        ))}
+        {(community.discord||[]).map((d,i) => (
+          <a key={i} href={`https://discord.com/servers`} target="_blank" rel="noopener noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:"12px", background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", textDecoration:"none", transition:"border-color 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.borderColor=city.accent}
+            onMouseLeave={e => e.currentTarget.style.borderColor=city.cardBorder}>
+            <span style={{ fontSize:"20px" }}>💜</span>
+            <div>
+              <div style={{ fontSize:"13px", color:city.textPrimary, fontFamily:city.displayFont }}>{d}</div>
+              <div style={{ fontSize:"11px", color:city.textMuted }}>Discord Server</div>
+            </div>
+            <span style={{ marginLeft:"auto", fontSize:"11px", color:city.accent }}>→</span>
+          </a>
+        ))}
+        {community.nextdoor && (
+          <a href="https://nextdoor.com" target="_blank" rel="noopener noreferrer"
+            style={{ display:"flex", alignItems:"center", gap:"12px", background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", textDecoration:"none", transition:"border-color 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.borderColor=city.accent}
+            onMouseLeave={e => e.currentTarget.style.borderColor=city.cardBorder}>
+            <span style={{ fontSize:"20px" }}>🟢</span>
+            <div>
+              <div style={{ fontSize:"13px", color:city.textPrimary, fontFamily:city.displayFont }}>Nextdoor</div>
+              <div style={{ fontSize:"11px", color:city.textMuted }}>Local neighborhood network</div>
+            </div>
+            <span style={{ marginLeft:"auto", fontSize:"11px", color:city.accent }}>→</span>
+          </a>
+        )}
+      </div>
+      {/* Local Events */}
+      {community.events?.length > 0 && (
+        <>
+          <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"10px" }}>Local Events & Gatherings</div>
+          <div style={{ display:"grid", gap:"8px" }}>
+            {community.events.map((ev,i) => (
+              <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, padding:"13px 16px", display:"flex", gap:"12px", alignItems:"flex-start" }}>
+                <span style={{ fontSize:"9px", padding:"3px 8px", background:city.accent+"22", color:city.accent, border:`1px solid ${city.accent}44`, whiteSpace:"nowrap", marginTop:"2px" }}>{ev.freq}</span>
+                <div>
+                  <div style={{ fontSize:"13px", fontFamily:city.displayFont, color:city.textPrimary, marginBottom:"3px" }}>{ev.name}</div>
+                  <div style={{ fontSize:"12px", color:city.textMuted }}>{ev.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Cost of Living Calculator ─────────────────────────────────────────────────
+const COL_DATA = {
+  austin:    { rent1br:1850, groceries:110, transport:85, utilities:130, dining:55, tax:0 },
+  boston:    { rent1br:2800, groceries:125, transport:90, utilities:140, dining:65, tax:5.0 },
+  seattle:   { rent1br:2400, groceries:120, transport:80, utilities:110, dining:60, tax:0 },
+  chicago:   { rent1br:1900, groceries:105, transport:105, utilities:120, dining:55, tax:4.95 },
+  denver:    { rent1br:1950, groceries:112, transport:75, utilities:115, dining:55, tax:4.55 },
+  nashville: { rent1br:1750, groceries:105, transport:80, utilities:125, dining:50, tax:0 },
+  miami:     { rent1br:2600, groceries:118, transport:85, utilities:160, dining:60, tax:0 },
+  nyc:       { rent1br:3800, groceries:135, transport:130, utilities:150, dining:75, tax:6.85 },
+  la:        { rent1br:2700, groceries:122, transport:90, utilities:115, dining:65, tax:9.3 },
+  portland:  { rent1br:1800, groceries:115, transport:75, utilities:105, dining:55, tax:0 },
+  phoenix:   { rent1br:1550, groceries:100, transport:80, utilities:145, dining:48, tax:2.5 },
+  atlanta:   { rent1br:1700, groceries:105, transport:78, utilities:130, dining:52, tax:5.75 },
+};
+
+function CostOfLivingTool({ onClose, cities }) {
+  const cityIds = cities.map(c => c.id);
+  const [cityA, setCityA] = useState(cityIds[0]);
+  const [cityB, setCityB] = useState(cityIds[1]);
+  const [salary, setSalary] = useState(75000);
+
+  const cityAData = COL_DATA[cityA] || {};
+  const cityBData = COL_DATA[cityB] || {};
+  const cityAInfo = cities.find(c => c.id === cityA);
+  const cityBInfo = cities.find(c => c.id === cityB);
+
+  const monthlyA = Object.values(cityAData).slice(0,5).reduce((a,b) => a+b, 0);
+  const monthlyB = Object.values(cityBData).slice(0,5).reduce((a,b) => a+b, 0);
+  const diff = monthlyB - monthlyA;
+  const pct = monthlyA > 0 ? Math.round((diff / monthlyA) * 100) : 0;
+
+  const taxA = cityAData.tax || 0;
+  const taxB = cityBData.tax || 0;
+  const netA = Math.round(salary * (1 - taxA/100) / 12);
+  const netB = Math.round(salary * (1 - taxB/100) / 12);
+  const leftoverA = netA - monthlyA;
+  const leftoverB = netB - monthlyB;
+
+  const rows = [
+    { label:"1BR Rent", keyA:"rent1br", keyB:"rent1br" },
+    { label:"Groceries/mo", keyA:"groceries", keyB:"groceries" },
+    { label:"Transport/mo", keyA:"transport", keyB:"transport" },
+    { label:"Utilities/mo", keyA:"utilities", keyB:"utilities" },
+    { label:"Dining out/wk", keyA:"dining", keyB:"dining" },
+  ];
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:100, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }} onClick={onClose}>
+      <div style={{ background:"#0d1117", border:"1px solid #2a2a3a", maxWidth:"680px", width:"100%", maxHeight:"90vh", overflowY:"auto", padding:"28px" }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
+          <div>
+            <div style={{ fontSize:"11px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:"4px" }}>Cost of Living</div>
+            <div style={{ fontSize:"22px", fontFamily:"Georgia, serif", color:"#fff" }}>City Comparison</div>
+          </div>
+          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer", fontSize:"16px" }}>×</button>
+        </div>
+
+        {/* City Pickers */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:"12px", alignItems:"center", marginBottom:"20px" }}>
+          <select value={cityA} onChange={e => setCityA(e.target.value)} style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"10px 12px", fontFamily:"Georgia, serif", fontSize:"14px", cursor:"pointer" }}>
+            {cities.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+          </select>
+          <div style={{ textAlign:"center", color:"rgba(255,255,255,0.3)", fontSize:"18px" }}>⇄</div>
+          <select value={cityB} onChange={e => setCityB(e.target.value)} style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"10px 12px", fontFamily:"Georgia, serif", fontSize:"14px", cursor:"pointer" }}>
+            {cities.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+          </select>
+        </div>
+
+        {/* Salary Input */}
+        <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", marginBottom:"20px" }}>
+          <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:"6px" }}>Your Annual Salary: ${salary.toLocaleString()}</div>
+          <input type="range" min={30000} max={300000} step={5000} value={salary} onChange={e => setSalary(Number(e.target.value))} style={{ width:"100%", accentColor:"#5b8db8" }} />
+        </div>
+
+        {/* Comparison Table */}
+        <div style={{ border:"1px solid #2a2a3a", marginBottom:"16px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", background:"#111", padding:"10px 14px", borderBottom:"1px solid #2a2a3a" }}>
+            <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:"1px" }}>Category</div>
+            <div style={{ fontSize:"12px", color:cityAInfo?.accent||"#fff", textAlign:"center", fontFamily:"Georgia,serif" }}>{cityAInfo?.emoji} {cityAInfo?.name}</div>
+            <div style={{ fontSize:"12px", color:cityBInfo?.accent||"#fff", textAlign:"center", fontFamily:"Georgia,serif" }}>{cityBInfo?.emoji} {cityBInfo?.name}</div>
+          </div>
+          {rows.map(row => (
+            <div key={row.label} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"10px 14px", borderBottom:"1px solid #1a1a2a" }}>
+              <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.5)" }}>{row.label}</div>
+              <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>${(cityAData[row.keyA]||0).toLocaleString()}</div>
+              <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>${(cityBData[row.keyB]||0).toLocaleString()}</div>
+            </div>
+          ))}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"12px 14px", background:"#0a0a12", borderBottom:"1px solid #2a2a3a" }}>
+            <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.7)", fontWeight:"bold" }}>Monthly Total</div>
+            <div style={{ fontSize:"15px", color:cityAInfo?.accent||"#fff", textAlign:"center", fontFamily:"Georgia,serif" }}>${monthlyA.toLocaleString()}</div>
+            <div style={{ fontSize:"15px", color:cityBInfo?.accent||"#fff", textAlign:"center", fontFamily:"Georgia,serif" }}>${monthlyB.toLocaleString()}</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"10px 14px", borderBottom:"1px solid #1a1a2a" }}>
+            <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.5)" }}>State Income Tax</div>
+            <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>{taxA === 0 ? "None" : `${taxA}%`}</div>
+            <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>{taxB === 0 ? "None" : `${taxB}%`}</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"10px 14px", borderBottom:"1px solid #1a1a2a" }}>
+            <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.5)" }}>Monthly take-home</div>
+            <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>${netA.toLocaleString()}</div>
+            <div style={{ fontSize:"13px", color:"#fff", textAlign:"center" }}>${netB.toLocaleString()}</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", padding:"12px 14px", background:"#0a0a12" }}>
+            <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.7)", fontWeight:"bold" }}>Monthly Leftover</div>
+            <div style={{ fontSize:"15px", color: leftoverA >= 0 ? "#4caf50" : "#f44336", textAlign:"center", fontFamily:"Georgia,serif" }}>${leftoverA.toLocaleString()}</div>
+            <div style={{ fontSize:"15px", color: leftoverB >= 0 ? "#4caf50" : "#f44336", textAlign:"center", fontFamily:"Georgia,serif" }}>${leftoverB.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div style={{ background: diff > 0 ? "#f4433611" : "#4caf5011", border:`1px solid ${diff > 0 ? "#f4433633" : "#4caf5033"}`, padding:"14px 16px", fontSize:"13px", color:"rgba(255,255,255,0.8)", lineHeight:"1.6" }}>
+          {cityBInfo?.name} is <strong style={{ color: diff > 0 ? "#f44336" : "#4caf50" }}>{Math.abs(pct)}% {diff > 0 ? "more" : "less"} expensive</strong> than {cityAInfo?.name} per month (${Math.abs(diff).toLocaleString()} difference). {leftoverB > leftoverA ? `You'd have $${(leftoverB-leftoverA).toLocaleString()} more per month in ${cityBInfo?.name}.` : `You'd have $${(leftoverA-leftoverB).toLocaleString()} less per month in ${cityBInfo?.name}.`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Apartments Tab ────────────────────────────────────────────────────────────
 function ApartmentsTab({ apartments, stats, neighborhood, city }) {
   const [minBeds, setMinBeds] = useState(0);
@@ -2110,8 +2402,8 @@ function ApartmentsTab({ apartments, stats, neighborhood, city }) {
 }
 
 // ── AI-Powered Neighborhood Page ─────────────────────────────────────────────
-const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿",apartments:"🏠" };
-const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space",apartments:"Apartments" };
+const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿",apartments:"🏠",jobs:"💼",schools:"🏫",community:"💬" };
+const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space",apartments:"Apartments",jobs:"Job Market",schools:"Schools",community:"Community" };
 
 function NeighborhoodPage({ neighborhood, city, onBack }) {
   const [data, setData] = useState(null);
@@ -2139,10 +2431,31 @@ Return this exact structure:
   "gyms": [{"name":"...","desc":"1 sentence"}],
   "landmarks": [{"name":"...","desc":"1 sentence"}],
   "parks": [{"name":"...","desc":"1 sentence"}],
-  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}]
+  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}],
+  "jobs": {
+    "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high/medium/low"}],
+    "topEmployers": [{"name":"...","type":"...","desc":"1 sentence"}],
+    "jobMarketSummary": "2 sentence overview of job market",
+    "avgHouseholdIncome": "$XX,XXX",
+    "unemploymentRate": "X.X%"
+  },
+  "schools": {
+    "summary": "2 sentence overview of schools in this neighborhood",
+    "public": [{"name":"...","grades":"K-5 / 6-8 / 9-12","rating":8,"desc":"1 sentence"}],
+    "private": [{"name":"...","grades":"...","desc":"1 sentence"}],
+    "universities": [{"name":"...","desc":"1 sentence"}]
+  },
+  "community": {
+    "summary": "1-2 sentences about community vibe",
+    "subreddit": "r/cityname",
+    "facebook": ["Group Name 1","Group Name 2"],
+    "discord": ["Server Name 1"],
+    "nextdoor": true,
+    "events": [{"name":"...","freq":"weekly/monthly/annual","desc":"1 sentence"}]
+  }
 }
 
-Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). Mark the top 2 must-visit food spots with must:true.`;
+Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 6-8 top industries and 5-6 major employers. For schools include real public, private, and universities near ${neighborhood.name}. For community include real subreddit, Facebook groups, and Discord servers for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
 
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -2154,7 +2467,7 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
+        max_tokens: 6000,
         messages: [{ role: "user", content: prompt }]
       })
     })
@@ -2171,9 +2484,9 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
   }, [neighborhood.name, city.id]);
 
   const sections = data ? (() => {
-    const rest = Object.keys(SECTION_LABELS).filter(s => s !== "apartments" && s !== "food" && data[s]?.length > 0);
-    const hasFoo = data["food"]?.length > 0;
-    return [...(hasFoo?["food"]:[]), "apartments", ...rest];
+    const core = ["food","apartments","bars","coffee","shopping","gyms","landmarks","parks"];
+    const extra = ["jobs","schools","community"];
+    return [...core.filter(s => s === "apartments" || data[s]?.length > 0), ...extra];
   })() : [];
 
   return (
@@ -2273,12 +2586,13 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
           </div>
           <div style={{ maxWidth:"860px", margin:"0 auto", padding:"24px 32px 80px" }}>
             {activeSection === "apartments" ? (
-              <ApartmentsTab
-                apartments={data.apartments}
-                stats={data.stats}
-                neighborhood={neighborhood}
-                city={city}
-              />
+              <ApartmentsTab apartments={data.apartments} stats={data.stats} neighborhood={neighborhood} city={city} />
+            ) : activeSection === "jobs" ? (
+              <JobsTab jobs={data.jobs} city={city} />
+            ) : activeSection === "schools" ? (
+              <SchoolsTab schools={data.schools} city={city} />
+            ) : activeSection === "community" ? (
+              <CommunityTab community={data.community} city={city} />
             ) : (
               <div style={{ display:"grid", gap:"9px" }}>
                 {(data[activeSection]||[]).map((item,i) => {
@@ -2338,8 +2652,18 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const [screen, setScreen] = useState("entry");
-  if (screen === "entry") return <SplitEntry onKnow={() => setScreen("know")} onExplore={() => setScreen("explore")} />;
-  if (screen === "know") return <KnowPath onBack={() => setScreen("entry")} />;
-  if (screen === "explore") return <ExplorePath onBack={() => setScreen("entry")} />;
-  return null;
+  const [showCoL, setShowCoL] = useState(false);
+  return (
+    <>
+      {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
+      {/* Floating CoL Button */}
+      <button onClick={() => setShowCoL(true)}
+        style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:50, background:"#1a1a2e", border:"1px solid #3a3a5a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
+        💰 Cost of Living
+      </button>
+      {screen === "entry" && <SplitEntry onKnow={() => setScreen("know")} onExplore={() => setScreen("explore")} />}
+      {screen === "know" && <KnowPath onBack={() => setScreen("entry")} />}
+      {screen === "explore" && <ExplorePath onBack={() => setScreen("entry")} />}
+    </>
+  );
 }
