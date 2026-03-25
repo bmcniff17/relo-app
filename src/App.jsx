@@ -1,5 +1,80 @@
 import { useState, useEffect, useRef } from "react";
 
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${options.token || SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation",
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok && res.status !== 404) throw new Error(await res.text());
+  return res.status === 204 || res.status === 404 ? null : res.json();
+}
+
+async function sbAuth(endpoint, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.error || data.error_description) throw new Error(data.error_description || data.error || data.msg);
+  return data;
+}
+
+async function getSession() {
+  try {
+    const token = localStorage.getItem("relo_token");
+    if (!token) return null;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) { localStorage.removeItem("relo_token"); return null; }
+    const user = await res.json();
+    return { user, token };
+  } catch { return null; }
+}
+
+async function saveUserData(token, key, value) {
+  try {
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    const existing = await sbFetch(`saved_data?user_id=eq.${user.id}&key=eq.${encodeURIComponent(key)}&select=id`, { token });
+    if (existing && existing.length > 0) {
+      await sbFetch(`saved_data?id=eq.${existing[0].id}`, {
+        method: "PATCH", token,
+        body: JSON.stringify({ value, updated_at: new Date().toISOString() })
+      });
+    } else {
+      await sbFetch("saved_data", {
+        method: "POST", token,
+        body: JSON.stringify({ user_id: user.id, key, value })
+      });
+    }
+  } catch(e) { console.error("Save error:", e); }
+}
+
+async function loadUserData(token, key) {
+  try {
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    const rows = await sbFetch(`saved_data?user_id=eq.${user.id}&key=eq.${encodeURIComponent(key)}&select=value`, { token });
+    return rows && rows.length > 0 ? rows[0].value : null;
+  } catch { return null; }
+}
+
 // ── Fonts loaded via index.html ──────────────────────────────────────────────
 
 // ── SVG Skylines ──────────────────────────────────────────────────────────────
@@ -2682,6 +2757,83 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
 }
 
 // ── Relocation Dashboard ──────────────────────────────────────────────────────
+// ── Auth Modal ────────────────────────────────────────────────────────────────
+function AuthModal({ onAuth, onClose }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handle = async () => {
+    if (!email || !password) { setError("Please fill in all fields"); return; }
+    setLoading(true); setError(""); setSuccess("");
+    try {
+      const endpoint = mode === "login" ? "token?grant_type=password" : "signup";
+      const data = await sbAuth(endpoint, { email, password });
+      if (mode === "signup") {
+        setSuccess("Account created! Check your email to confirm, then log in.");
+        setMode("login");
+      } else {
+        const token = data.access_token;
+        localStorage.setItem("relo_token", token);
+        onAuth({ user: data.user, token });
+      }
+    } catch(e) {
+      setError(e.message || "Something went wrong");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:300, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }} onClick={onClose}>
+      <div style={{ background:"#0a0c14", border:"1px solid #2a2a3a", width:"100%", maxWidth:"400px", padding:"32px" }} onClick={e => e.stopPropagation()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px" }}>
+          <div>
+            <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"4px" }}>Relo Account</div>
+            <div style={{ fontSize:"22px", fontFamily:"Georgia,serif", color:"#fff" }}>{mode === "login" ? "Welcome back" : "Create account"}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer", fontSize:"16px" }}>×</button>
+        </div>
+
+        {error && <div style={{ background:"#f4433622", border:"1px solid #f4433644", color:"#f44336", padding:"10px 14px", fontSize:"12px", marginBottom:"16px" }}>{error}</div>}
+        {success && <div style={{ background:"#4caf5022", border:"1px solid #4caf5044", color:"#4caf50", padding:"10px 14px", fontSize:"12px", marginBottom:"16px" }}>{success}</div>}
+
+        <div style={{ display:"flex", flexDirection:"column", gap:"12px", marginBottom:"20px" }}>
+          <div>
+            <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"6px" }}>Email</div>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handle()}
+              placeholder="you@example.com"
+              style={{ width:"100%", background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"10px 12px", fontFamily:"Georgia,serif", fontSize:"13px", boxSizing:"border-box" }} />
+          </div>
+          <div>
+            <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"6px" }}>Password</div>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handle()}
+              placeholder="••••••••"
+              style={{ width:"100%", background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"10px 12px", fontFamily:"Georgia,serif", fontSize:"13px", boxSizing:"border-box" }} />
+          </div>
+        </div>
+
+        <button onClick={handle} disabled={loading}
+          style={{ width:"100%", background:"#5b8db8", border:"none", color:"#fff", padding:"12px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", letterSpacing:"2px", textTransform:"uppercase", opacity: loading ? 0.7 : 1 }}>
+          {loading ? "..." : mode === "login" ? "Log In" : "Create Account"}
+        </button>
+
+        <div style={{ textAlign:"center", marginTop:"16px", fontSize:"12px", color:"rgba(255,255,255,0.4)" }}>
+          {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setSuccess(""); }}
+            style={{ background:"transparent", border:"none", color:"#5b8db8", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", textDecoration:"underline" }}>
+            {mode === "login" ? "Sign up" : "Log in"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const DEFAULT_CHECKLIST = [
   { id:"dl", category:"Legal", task:"Update driver's license", done:false },
   { id:"vote", category:"Legal", task:"Update voter registration", done:false },
@@ -2718,14 +2870,63 @@ function useLocalStorage(key, defaultVal) {
 
 function RelocationDashboard({ onClose, cities }) {
   const [activeTab, setActiveTab] = useState("timeline");
-  const [moveDate, setMoveDate] = useLocalStorage("relo_moveDate", "");
-  const [moveCity, setMoveCity] = useLocalStorage("relo_moveCity", "");
-  const [checklist, setChecklist] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
-  const [savedNeighborhoods, setSavedNeighborhoods] = useLocalStorage("relo_neighborhoods", []);
-  const [savedApartments, setSavedApartments] = useLocalStorage("relo_apartments", []);
-  const [budget, setBudget] = useLocalStorage("relo_budget", { total: 10000, expenses: [] });
+  const [session, setSession] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const [moveDate, setMoveDateRaw] = useLocalStorage("relo_moveDate", "");
+  const [moveCity, setMoveCityRaw] = useLocalStorage("relo_moveCity", "");
+  const [checklist, setChecklistRaw] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
+  const [savedNeighborhoods, setSavedNeighborhoodsRaw] = useLocalStorage("relo_neighborhoods", []);
+  const [savedApartments, setSavedApartmentsRaw] = useLocalStorage("relo_apartments", []);
+  const [budget, setBudgetRaw] = useLocalStorage("relo_budget", { total: 10000, expenses: [] });
   const [newExpense, setNewExpense] = useState({ label:"", category: BUDGET_CATEGORIES[0], amount:"" });
   const [newTask, setNewTask] = useState("");
+
+  // Check for existing session on mount
+  useEffect(() => {
+    getSession().then(s => {
+      if (s) { setSession(s); loadFromCloud(s.token); }
+    });
+  }, []);
+
+  const loadFromCloud = async (token) => {
+    setSyncing(true);
+    try {
+      const keys = ["moveDate","moveCity","checklist","neighborhoods","apartments","budget"];
+      const results = await Promise.all(keys.map(k => loadUserData(token, k)));
+      if (results[0]) setMoveDateRaw(results[0]);
+      if (results[1]) setMoveCityRaw(results[1]);
+      if (results[2]) setChecklistRaw(results[2]);
+      if (results[3]) setSavedNeighborhoodsRaw(results[3]);
+      if (results[4]) setSavedApartmentsRaw(results[4]);
+      if (results[5]) setBudgetRaw(results[5]);
+    } catch(e) { console.error(e); }
+    setSyncing(false);
+  };
+
+  const syncToCloud = async (key, value) => {
+    if (!session) return;
+    await saveUserData(session.token, key, value);
+  };
+
+  const setMoveDate = v => { setMoveDateRaw(v); syncToCloud("moveDate", v); };
+  const setMoveCity = v => { setMoveCityRaw(v); syncToCloud("moveCity", v); };
+  const setChecklist = v => { setChecklistRaw(v); syncToCloud("checklist", v); };
+  const setSavedNeighborhoods = v => { setSavedNeighborhoodsRaw(v); syncToCloud("neighborhoods", v); };
+  const setSavedApartments = v => { setSavedApartmentsRaw(v); syncToCloud("apartments", v); };
+  const setBudget = v => { setBudgetRaw(v); syncToCloud("budget", v); };
+
+  const handleAuth = async (s) => {
+    setSession(s);
+    setShowAuth(false);
+    await loadFromCloud(s.token);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("relo_token");
+    setSession(null);
+  };
 
   const daysUntilMove = moveDate ? Math.ceil((new Date(moveDate) - new Date()) / (1000*60*60*24)) : null;
   const checkDone = checklist.filter(c => c.done).length;
@@ -2778,6 +2979,7 @@ function RelocationDashboard({ onClose, cities }) {
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:200, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", padding:"16px" }} onClick={onClose}>
+      {showAuth && <AuthModal onAuth={handleAuth} onClose={() => setShowAuth(false)} />}
       <div style={{ background:"#0a0c14", border:"1px solid #2a2a3a", width:"100%", maxWidth:"780px", maxHeight:"90vh", display:"flex", flexDirection:"column", overflow:"hidden" }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -2794,7 +2996,24 @@ function RelocationDashboard({ onClose, cities }) {
                 </div>
               )}
             </div>
-            <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+            <div style={{ display:"flex", gap:"8px", alignItems:"center", flexWrap:"wrap", justifyContent:"flex-end" }}>
+              {/* Auth button */}
+              {session ? (
+                <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
+                  <div style={{ fontSize:"10px", color:"#4caf50", display:"flex", alignItems:"center", gap:"4px" }}>
+                    {syncing ? "⟳ Syncing..." : "☁ Saved"}
+                  </div>
+                  <button onClick={handleLogout}
+                    style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.5)", padding:"4px 10px", fontSize:"10px", cursor:"pointer", fontFamily:"Georgia,serif" }}>
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setShowAuth(true)}
+                  style={{ background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", padding:"6px 12px", fontSize:"10px", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px", display:"flex", alignItems:"center", gap:"6px" }}>
+                  ☁ Sign in to sync
+                </button>
+              )}
               {/* Quick stats */}
               <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"8px 14px" }}>
                 <div style={{ fontSize:"16px", fontFamily:"Georgia,serif", color:"#4caf50" }}>{checkDone}/{checklist.length}</div>
@@ -3003,6 +3222,12 @@ export default function App() {
   const [screen, setScreen] = useState("entry");
   const [showCoL, setShowCoL] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    getSession().then(s => setIsLoggedIn(!!s));
+  }, []);
+
   return (
     <>
       {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
@@ -3011,8 +3236,8 @@ export default function App() {
       {/* Floating Buttons */}
       <div style={{ position:"fixed", bottom:"24px", right:"24px", zIndex:50, display:"flex", flexDirection:"column", gap:"10px", alignItems:"flex-end" }}>
         <button onClick={() => setShowDashboard(true)}
-          style={{ background:"#1a2a1a", border:"1px solid #3a5a3a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
-          📋 My Move
+          style={{ background:"#1a2a1a", border:`1px solid ${isLoggedIn ? "#4caf5055" : "#3a5a3a"}`, color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
+          {isLoggedIn ? "☁" : "📋"} My Move
         </button>
         <button onClick={() => setShowCoL(true)}
           style={{ background:"#1a1a2e", border:"1px solid #3a3a5a", color:"#fff", padding:"10px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:"Georgia,serif", backdropFilter:"blur(8px)", boxShadow:"0 4px 20px rgba(0,0,0,0.4)", display:"flex", alignItems:"center", gap:"8px" }}>
