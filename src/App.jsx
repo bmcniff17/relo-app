@@ -2899,6 +2899,7 @@ function RelocationDashboard({ onBack, cities }) {
   }, {});
 
   const vendorsBooked = vendors.filter(v => v.status === "Confirmed" || v.status === "Booked").length;
+  const vendorTypesForSuggestions = VENDOR_TYPES.filter(t => t !== "Custom");
   const vendorsComparing = vendors.filter(v => v.status === "Comparing" || v.status === "Quoted").length;
   const nextTasks = checklist.filter(c => !c.done).slice(0, 3);
   const upcomingMilestones = milestones.filter(m => !m.done).slice(0, 3);
@@ -3408,7 +3409,7 @@ function RelocationDashboard({ onBack, cities }) {
               {/* Vendor Suggestions */}
               <div style={{ marginTop:"32px" }}>
                 <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"20px" }}>Suggested Services</div>
-                {VENDOR_TYPES.filter(t => t !== "Custom").map(type => {
+                {vendorTypesForSuggestions.map(type => {
                   const suggestions = VENDOR_SUGGESTIONS[type] || [];
                   if (!suggestions.length) return null;
                   return (
