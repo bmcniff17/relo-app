@@ -3078,18 +3078,17 @@ function AuthModal({ onAuth, onClose }) {
 
   const handle = async () => {
     if (!email || !password) { setError("Please fill in all fields"); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
       const endpoint = mode === "login" ? "token?grant_type=password" : "signup";
       const data = await sbAuth(endpoint, { email, password });
-      if (mode === "signup") {
-        setSuccess("Account created! You can now log in.");
-        setMode("login");
-      } else {
-        const token = data.access_token;
-        localStorage.setItem("relo_token", token);
-        onAuth({ user: data.user, token });
-      }
+      if (!data) throw new Error("No response from server");
+      // Both signup and login return an access_token now that email confirm is off
+      const token = data.access_token;
+      if (!token) throw new Error("Login failed — please try again");
+      localStorage.setItem("relo_token", token);
+      onAuth({ user: data.user, token });
     } catch(e) { setError(e.message || "Something went wrong"); }
     setLoading(false);
   };
@@ -3125,7 +3124,7 @@ function AuthModal({ onAuth, onClose }) {
 
         <button onClick={handle} disabled={loading}
           style={{ width:"100%", background:"#5b8db8", border:"none", color:"#fff", padding:"13px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", letterSpacing:"2px", textTransform:"uppercase", opacity:loading?0.7:1 }}>
-          {loading ? "..." : mode === "login" ? "Log In" : "Create Account"}
+          {loading ? "..." : mode === "login" ? "Log In" : "Create Account & Sign In"}
         </button>
 
         <div style={{ textAlign:"center", marginTop:"16px", fontSize:"12px", color:"rgba(255,255,255,0.4)" }}>
