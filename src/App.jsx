@@ -3438,8 +3438,8 @@ function RelocationDashboard({ onBack, cities }) {
                                 setVendors([...vendors, { id:Date.now(), name:s.name, type, quote:"", contact:"", notes:s.best, status:"Comparing" }]);
                               }}
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px", transition:"all 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.background="#5b8db844"}
-                                onMouseLeave={e => e.currentTarget.style.background="#5b8db822"}>
+                                onMouseEnter={e => e.currentTarget.style.background='#5b8db844'}
+                                onMouseLeave={e => e.currentTarget.style.background='#5b8db822'}>
                                 + Add
                               </button>
                             </div>
