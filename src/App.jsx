@@ -2898,10 +2898,14 @@ function RelocationDashboard({ onBack, cities }) {
     return acc;
   }, {});
 
-  // Widget styles helper
+  const vendorsBooked = vendors.filter(v => v.status === "Confirmed" || v.status === "Booked").length;
+  const vendorsComparing = vendors.filter(v => v.status === "Comparing" || v.status === "Quoted").length;
+  const nextTasks = checklist.filter(c => !c.done).slice(0, 3);
+  const upcomingMilestones = milestones.filter(m => !m.done).slice(0, 3);
+
   const W = ({ children, span=1, onClick, accent="#5b8db8" }) => (
     <div onClick={onClick}
-      style={{ background:"#0d0f1a", border:`1px solid #1e2030`, borderTop:`2px solid ${accent}`, padding:"20px", gridColumn:`span ${span}`, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
+      style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:`2px solid ${accent}`, padding:"20px", gridColumn:`span ${span}`, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
       onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background='#111320'; }}}
       onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor='#1e2030'; e.currentTarget.style.background='#0d0f1a'; }}}>
       {children}
@@ -2909,11 +2913,6 @@ function RelocationDashboard({ onBack, cities }) {
   );
   const WLabel = ({children}) => <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>{children}</div>;
   const WVal = ({children, color="#fff", size=28}) => <div style={{ fontSize:`${size}px`, fontFamily:"Georgia,serif", color, lineHeight:1.1 }}>{children}</div>;
-
-  const vendorsBooked = vendors.filter(v => v.status === "Confirmed" || v.status === "Booked").length;
-  const vendorsComparing = vendors.filter(v => v.status === "Comparing" || v.status === "Quoted").length;
-  const nextTasks = checklist.filter(c => !c.done).slice(0, 3);
-  const upcomingMilestones = milestones.filter(m => !m.done).slice(0, 3);
 
   return (
     <div style={{ minHeight:"100vh", background:"#080810", color:"#fff", fontFamily:"Georgia,serif" }}>
