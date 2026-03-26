@@ -3457,12 +3457,6 @@ function RelocationDashboard({ onBack, cities }) {
     </div>
   );
 }
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
