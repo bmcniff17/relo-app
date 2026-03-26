@@ -2723,14 +2723,47 @@ function RelocationDashboard({ onClose, cities }) {
   const [checklist, setChecklist] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
   const [savedNeighborhoods, setSavedNeighborhoods] = useLocalStorage("relo_neighborhoods", []);
   const [savedApartments, setSavedApartments] = useLocalStorage("relo_apartments", []);
-  const [budget, setBudget] = useLocalStorage("relo_budget", { total: 10000, expenses: [] });
-  const [newExpense, setNewExpense] = useState({ label:"", category: BUDGET_CATEGORIES[0], amount:"" });
+  const [budget, setBudget] = useLocalStorage("relo_budget", { total: 10000, categories: [], expenses: [] });
+  const [vendors, setVendors] = useLocalStorage("relo_vendors", []);
+  const [newExpense, setNewExpense] = useState({ label:"", category:"", amount:"" });
   const [newTask, setNewTask] = useState("");
 
   const daysUntilMove = moveDate ? Math.ceil((new Date(moveDate) - new Date()) / (1000*60*60*24)) : null;
   const checkDone = checklist.filter(c => c.done).length;
-  const totalSpent = budget.expenses.reduce((a,b) => a + (b.amount||0), 0);
-  const remaining = budget.total - totalSpent;
+  const activeCategories = (budget.categories||[]).filter(c => c.active);
+  const totalBudget = activeCategories.reduce((a,b) => a+(b.limit||0), 0) || budget.total || 0;
+  const totalSpent = (budget.expenses||[]).reduce((a,b) => a+(b.amount||0), 0);
+  const remaining = totalBudget - totalSpent;
+
+  const ALL_BUDGET_CATS = [
+    { id:"moving", label:"Moving Company", icon:"🚚" },
+    { id:"carship", label:"Car Shipping", icon:"🚗" },
+    { id:"rent", label:"First/Last Month Rent", icon:"🏠" },
+    { id:"deposit", label:"Security Deposit", icon:"🔑" },
+    { id:"flights", label:"Flights", icon:"✈️" },
+    { id:"temp", label:"Temporary Housing", icon:"🏨" },
+    { id:"storage", label:"Storage Unit", icon:"📦" },
+    { id:"furniture", label:"Furniture", icon:"🛋️" },
+    { id:"utilities", label:"Utilities Setup", icon:"💡" },
+    { id:"broker", label:"Broker Fee", icon:"🤝" },
+    { id:"misc", label:"Miscellaneous", icon:"💸" },
+  ];
+
+  const initCategories = () => {
+    if (!budget.categories?.length) {
+      setBudget({ ...budget, categories: ALL_BUDGET_CATS.map(c => ({ ...c, active: false, limit: 0 })) });
+    }
+  };
+
+  const toggleCategory = (id) => {
+    const cats = (budget.categories||[]).map(c => c.id === id ? {...c, active: !c.active} : c);
+    setBudget({ ...budget, categories: cats });
+  };
+
+  const setCategoryLimit = (id, limit) => {
+    const cats = (budget.categories||[]).map(c => c.id === id ? {...c, limit: parseFloat(limit)||0} : c);
+    setBudget({ ...budget, categories: cats });
+  };
 
   const toggleCheck = id => setChecklist(checklist.map(c => c.id === id ? {...c, done:!c.done} : c));
   const addTask = () => {
@@ -2739,13 +2772,58 @@ function RelocationDashboard({ onClose, cities }) {
     setNewTask("");
   };
   const addExpense = () => {
-    if (!newExpense.label || !newExpense.amount) return;
-    setBudget({ ...budget, expenses: [...budget.expenses, { ...newExpense, amount: parseFloat(newExpense.amount), id: Date.now() }] });
-    setNewExpense({ label:"", category:BUDGET_CATEGORIES[0], amount:"" });
+    if (!newExpense.label || !newExpense.amount || !newExpense.category) return;
+    setBudget({ ...budget, expenses: [...(budget.expenses||[]), { ...newExpense, amount: parseFloat(newExpense.amount), id: Date.now() }] });
+    setNewExpense({ label:"", category:"", amount:"" });
   };
-  const removeExpense = id => setBudget({ ...budget, expenses: budget.expenses.filter(e => e.id !== id) });
+  const removeExpense = id => setBudget({ ...budget, expenses: (budget.expenses||[]).filter(e => e.id !== id) });
   const removeNeighborhood = name => setSavedNeighborhoods(savedNeighborhoods.filter(n => n.name !== name));
   const removeApartment = id => setSavedApartments(savedApartments.filter(a => a.id !== id));
+
+  // Vendor helpers
+  const VENDOR_TYPES = ["Moving Company","Car Shipping","Apartment / Broker","Storage Unit","Internet / Utilities","Custom"];
+  const VENDOR_STATUSES = ["Comparing","Quoted","Booked","Confirmed","Cancelled"];
+  const statusColor = { Comparing:"#5b8db8", Quoted:"#ff9800", Booked:"#9c27b0", Confirmed:"#4caf50", Cancelled:"#f44336" };
+  const [newVendor, setNewVendor] = useState({ name:"", type:VENDOR_TYPES[0], quote:"", contact:"", notes:"", status:"Comparing" });
+  const [showAddVendor, setShowAddVendor] = useState(false);
+  const addVendor = () => {
+    if (!newVendor.name) return;
+    setVendors([...vendors, { ...newVendor, id: Date.now() }]);
+    setNewVendor({ name:"", type:VENDOR_TYPES[0], quote:"", contact:"", notes:"", status:"Comparing" });
+    setShowAddVendor(false);
+  };
+  const updateVendorStatus = (id, status) => setVendors(vendors.map(v => v.id === id ? {...v, status} : v));
+  const removeVendor = id => setVendors(vendors.filter(v => v.id !== id));
+
+  // Export budget summary
+  const exportBudget = () => {
+    const lines = [
+      "RELO — Budget Summary",
+      `Move to: ${moveCity || "TBD"}`,
+      `Date: ${moveDate || "TBD"}`,
+      "",
+      "=== BUDGET CATEGORIES ===",
+      ...activeCategories.map(c => {
+        const spent = (budget.expenses||[]).filter(e => e.category === c.label).reduce((a,b) => a+b.amount, 0);
+        return `${c.icon} ${c.label}: $${spent.toLocaleString()} / $${c.limit.toLocaleString()} limit`;
+      }),
+      "",
+      `Total Spent: $${totalSpent.toLocaleString()}`,
+      `Total Budget: $${totalBudget.toLocaleString()}`,
+      `Remaining: $${remaining.toLocaleString()}`,
+      "",
+      "=== EXPENSES ===",
+      ...(budget.expenses||[]).map(e => `${e.category} — ${e.label}: $${e.amount.toLocaleString()}`),
+      "",
+      "=== VENDORS ===",
+      ...vendors.map(v => `${v.type}: ${v.name} | ${v.status} | Quote: ${v.quote || "N/A"} | ${v.contact || ""}`)
+    ].join("\n");
+    const blob = new Blob([lines], { type:"text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "relo-budget.txt"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Timeline milestones based on move date
   const milestones = moveDate ? (() => {
@@ -2768,6 +2846,7 @@ function RelocationDashboard({ onClose, cities }) {
     { id:"checklist", label:"✅ Checklist" },
     { id:"neighborhoods", label:"🏘 Saved" },
     { id:"budget", label:"💰 Budget" },
+    { id:"vendors", label:"🏢 Vendors" },
   ];
 
   const checklistByCategory = checklist.reduce((acc, item) => {
@@ -2935,47 +3014,120 @@ function RelocationDashboard({ onClose, cities }) {
           {/* ── Budget ── */}
           {activeTab === "budget" && (
             <div>
-              {/* Total Budget Setting */}
-              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"16px", marginBottom:"20px" }}>
-                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"6px" }}>Total Relocation Budget</div>
-                <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                  <span style={{ color:"rgba(255,255,255,0.5)", fontSize:"16px" }}>$</span>
-                  <input type="number" value={budget.total} onChange={e => setBudget({...budget, total: parseFloat(e.target.value)||0})}
-                    style={{ background:"transparent", border:"none", borderBottom:"1px solid #3a3a4a", color:"#fff", fontSize:"22px", fontFamily:"Georgia,serif", width:"140px", padding:"4px 0" }} />
+              {/* Step 1: Pick categories */}
+              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"16px", marginBottom:"16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+                  <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)" }}>1. Pick your budget categories</div>
+                  <button onClick={initCategories} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.4)", padding:"3px 10px", fontSize:"10px", cursor:"pointer", fontFamily:"Georgia,serif" }}>Reset</button>
                 </div>
-                <div style={{ marginTop:"12px", height:"6px", background:"#1a1a2a", borderRadius:"3px" }}>
-                  <div style={{ height:"100%", width:`${Math.min(100,(totalSpent/budget.total)*100)}%`, background: remaining < 0 ? "#f44336" : remaining < budget.total*0.2 ? "#ff9800" : "#4caf50", borderRadius:"3px", transition:"width 0.3s" }} />
-                </div>
-                <div style={{ display:"flex", justifyContent:"space-between", marginTop:"8px", fontSize:"12px" }}>
-                  <span style={{ color:"rgba(255,255,255,0.4)" }}>Spent: ${totalSpent.toLocaleString()}</span>
-                  <span style={{ color: remaining >= 0 ? "#4caf50" : "#f44336" }}>Remaining: ${remaining.toLocaleString()}</span>
+                <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                  {(budget.categories?.length ? budget.categories : ALL_BUDGET_CATS.map(c=>({...c,active:false,limit:0}))).map(cat => (
+                    <button key={cat.id} onClick={() => {
+                      if (!budget.categories?.length) setBudget({...budget, categories: ALL_BUDGET_CATS.map(c=>({...c,active:false,limit:0}))});
+                      else toggleCategory(cat.id);
+                    }}
+                      style={{ padding:"6px 12px", fontSize:"11px", cursor:"pointer", fontFamily:"Georgia,serif", border:`1px solid ${cat.active?"#5b8db8":"#2a2a3a"}`, background: cat.active?"#5b8db822":"transparent", color: cat.active?"#5b8db8":"rgba(255,255,255,0.5)", transition:"all 0.15s" }}>
+                      {cat.icon} {cat.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Add Expense */}
-              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", marginBottom:"20px" }}>
-                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"10px" }}>Add Expense</div>
+              {/* Step 2: Set limits */}
+              {activeCategories.length > 0 && (
+                <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"16px", marginBottom:"16px" }}>
+                  <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:"12px" }}>2. Set limits per category</div>
+                  <div style={{ display:"grid", gap:"8px" }}>
+                    {activeCategories.map(cat => {
+                      const spent = (budget.expenses||[]).filter(e => e.category === cat.label).reduce((a,b) => a+b.amount, 0);
+                      const pct = cat.limit > 0 ? Math.min(100, (spent/cat.limit)*100) : 0;
+                      const overBudget = spent > cat.limit && cat.limit > 0;
+                      return (
+                        <div key={cat.id} style={{ display:"flex", gap:"12px", alignItems:"center", flexWrap:"wrap" }}>
+                          <span style={{ fontSize:"12px", color:"rgba(255,255,255,0.7)", minWidth:"160px" }}>{cat.icon} {cat.label}</span>
+                          <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+                            <span style={{ color:"rgba(255,255,255,0.4)", fontSize:"13px" }}>$</span>
+                            <input type="number" value={cat.limit||""} onChange={e => setCategoryLimit(cat.id, e.target.value)} placeholder="Limit"
+                              style={{ width:"100px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"5px 8px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                          </div>
+                          {cat.limit > 0 && (
+                            <div style={{ flex:1, minWidth:"120px" }}>
+                              <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px" }}>
+                                <div style={{ height:"100%", width:`${pct}%`, background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+                              </div>
+                              <div style={{ fontSize:"10px", color: overBudget?"#f44336":"rgba(255,255,255,0.35)", marginTop:"2px" }}>
+                                ${spent.toLocaleString()} / ${cat.limit.toLocaleString()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Visual chart */}
+              {activeCategories.length > 0 && totalBudget > 0 && (
+                <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"16px", marginBottom:"16px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+                    <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)" }}>3. Spending overview</div>
+                    <button onClick={exportBudget} style={{ background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", padding:"5px 12px", fontSize:"10px", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px" }}>⬇ Export</button>
+                  </div>
+                  {/* Overall bar */}
+                  <div style={{ marginBottom:"16px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", fontSize:"12px", marginBottom:"5px" }}>
+                      <span style={{ color:"rgba(255,255,255,0.5)" }}>Total: ${totalSpent.toLocaleString()} spent</span>
+                      <span style={{ color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${Math.abs(remaining).toLocaleString()} {remaining >= 0 ? "remaining" : "over budget"}</span>
+                    </div>
+                    <div style={{ height:"8px", background:"#1a1a2a", borderRadius:"4px" }}>
+                      <div style={{ height:"100%", width:`${Math.min(100,(totalSpent/totalBudget)*100)}%`, background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"4px", transition:"width 0.3s" }} />
+                    </div>
+                  </div>
+                  {/* Per-category bars */}
+                  <div style={{ display:"grid", gap:"10px" }}>
+                    {activeCategories.map(cat => {
+                      const spent = (budget.expenses||[]).filter(e => e.category === cat.label).reduce((a,b) => a+b.amount, 0);
+                      const pct = cat.limit > 0 ? Math.min(100,(spent/cat.limit)*100) : 0;
+                      const barColor = spent > cat.limit && cat.limit > 0 ? "#f44336" : pct > 80 ? "#ff9800" : "#5b8db8";
+                      return (
+                        <div key={cat.id}>
+                          <div style={{ display:"flex", justifyContent:"space-between", fontSize:"11px", marginBottom:"3px" }}>
+                            <span style={{ color:"rgba(255,255,255,0.6)" }}>{cat.icon} {cat.label}</span>
+                            <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?` / $${cat.limit.toLocaleString()}`:""}</span>
+                          </div>
+                          <div style={{ height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
+                            <div style={{ height:"100%", width:`${cat.limit>0?pct:0}%`, background:barColor, borderRadius:"3px", transition:"width 0.3s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Add expenses */}
+              <div style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", marginBottom:"16px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:"10px" }}>4. Log an expense</div>
                 <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
-                  <input value={newExpense.label} onChange={e => setNewExpense({...newExpense, label:e.target.value})}
-                    placeholder="Description"
+                  <input value={newExpense.label} onChange={e => setNewExpense({...newExpense, label:e.target.value})} placeholder="Description"
                     style={{ flex:"2 1 120px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
                   <select value={newExpense.category} onChange={e => setNewExpense({...newExpense, category:e.target.value})}
-                    style={{ flex:"1 1 120px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 8px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
-                    {BUDGET_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    style={{ flex:"1 1 140px", background:"#0a0a14", border:"1px solid #2a2a3a", color: newExpense.category?"#fff":"rgba(255,255,255,0.4)", padding:"7px 8px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
+                    <option value="">Select category...</option>
+                    {activeCategories.map(c => <option key={c.id} value={c.label}>{c.icon} {c.label}</option>)}
+                    <option value="Other">Other</option>
                   </select>
-                  <input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount:e.target.value})}
-                    placeholder="Amount $"
+                  <input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount:e.target.value})} placeholder="Amount $"
                     style={{ flex:"1 1 80px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
                   <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>+ Add</button>
                 </div>
               </div>
 
-              {/* Expense List */}
-              {budget.expenses.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"32px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>No expenses tracked yet</div>
-              ) : (
+              {/* Expense list */}
+              {(budget.expenses||[]).length > 0 && (
                 <div style={{ display:"grid", gap:"6px" }}>
-                  {budget.expenses.map(e => (
+                  {(budget.expenses||[]).map(e => (
                     <div key={e.id} style={{ display:"flex", alignItems:"center", gap:"12px", background:"#111", border:"1px solid #2a2a3a", padding:"10px 14px" }}>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:"13px", color:"#fff" }}>{e.label}</div>
@@ -2985,9 +3137,83 @@ function RelocationDashboard({ onClose, cities }) {
                       <button onClick={() => removeExpense(e.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"12px" }}>×</button>
                     </div>
                   ))}
-                  <div style={{ display:"flex", justifyContent:"flex-end", padding:"10px 14px", borderTop:"1px solid #2a2a3a", marginTop:"4px" }}>
+                  <div style={{ display:"flex", justifyContent:"flex-end", padding:"10px 14px", borderTop:"1px solid #2a2a3a" }}>
                     <span style={{ fontSize:"15px", color:"#fff", fontFamily:"Georgia,serif" }}>Total: ${totalSpent.toLocaleString()}</span>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Vendors ── */}
+          {activeTab === "vendors" && (
+            <div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+                <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.5)" }}>Track quotes, contacts, and status for all your vendors</div>
+                <button onClick={() => setShowAddVendor(!showAddVendor)}
+                  style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"8px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>
+                  + Add Vendor
+                </button>
+              </div>
+
+              {/* Add vendor form */}
+              {showAddVendor && (
+                <div style={{ background:"#111", border:"1px solid #5b8db833", padding:"16px", marginBottom:"16px" }}>
+                  <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.4)", marginBottom:"12px" }}>New Vendor</div>
+                  <div style={{ display:"grid", gap:"10px" }}>
+                    <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                      <input value={newVendor.name} onChange={e => setNewVendor({...newVendor, name:e.target.value})} placeholder="Company name *"
+                        style={{ flex:"2 1 160px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                      <select value={newVendor.type} onChange={e => setNewVendor({...newVendor, type:e.target.value})}
+                        style={{ flex:"1 1 160px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 10px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
+                        {VENDOR_TYPES.map(t => <option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                      <input value={newVendor.quote} onChange={e => setNewVendor({...newVendor, quote:e.target.value})} placeholder="Quote amount (e.g. $1,200)"
+                        style={{ flex:"1 1 140px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                      <input value={newVendor.contact} onChange={e => setNewVendor({...newVendor, contact:e.target.value})} placeholder="Contact (phone or email)"
+                        style={{ flex:"2 1 180px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                    </div>
+                    <input value={newVendor.notes} onChange={e => setNewVendor({...newVendor, notes:e.target.value})} placeholder="Notes (optional)"
+                      style={{ background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
+                    <div style={{ display:"flex", gap:"8px", justifyContent:"flex-end" }}>
+                      <button onClick={() => setShowAddVendor(false)} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px" }}>Cancel</button>
+                      <button onClick={addVendor} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 20px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px" }}>Save Vendor</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Vendor cards */}
+              {vendors.length === 0 && !showAddVendor ? (
+                <div style={{ textAlign:"center", padding:"48px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>
+                  No vendors yet — add your movers, car shippers, broker, and more
+                </div>
+              ) : (
+                <div style={{ display:"grid", gap:"10px" }}>
+                  {vendors.map(v => (
+                    <div key={v.id} style={{ background:"#111", border:`1px solid ${statusColor[v.status]||"#2a2a3a"}33`, borderLeft:`3px solid ${statusColor[v.status]||"#2a2a3a"}`, padding:"16px" }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"10px", marginBottom:"10px" }}>
+                        <div>
+                          <div style={{ fontSize:"15px", fontFamily:"Georgia,serif", color:"#fff", marginBottom:"3px" }}>{v.name}</div>
+                          <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>{v.type}</div>
+                        </div>
+                        <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
+                          <select value={v.status} onChange={e => updateVendorStatus(v.id, e.target.value)}
+                            style={{ background:"#0a0a14", border:`1px solid ${statusColor[v.status]}44`, color:statusColor[v.status]||"#fff", padding:"4px 8px", fontFamily:"Georgia,serif", fontSize:"11px", cursor:"pointer" }}>
+                            {VENDOR_STATUSES.map(s => <option key={s}>{s}</option>)}
+                          </select>
+                          <button onClick={() => removeVendor(v.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"12px" }}>×</button>
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", gap:"20px", flexWrap:"wrap", fontSize:"12px", color:"rgba(255,255,255,0.5)" }}>
+                        {v.quote && <span>💰 {v.quote}</span>}
+                        {v.contact && <span>📞 {v.contact}</span>}
+                        {v.notes && <span>📝 {v.notes}</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
