@@ -2716,7 +2716,50 @@ function useLocalStorage(key, defaultVal) {
   return [val, set];
 }
 
-function RelocationDashboard({ onClose, cities }) {
+
+// ── Vendor Suggestions Data ───────────────────────────────────────────────────
+const VENDOR_SUGGESTIONS = {
+  "Moving Company": [
+    { name:"PODS", desc:"Portable containers — load at your pace, they drive it", best:"Long-distance, flexible timeline", rating:"4.4", url:"https://www.pods.com", price:"$$" },
+    { name:"Two Men and a Truck", desc:"Local and long-distance full-service movers", best:"Full-service, hands-off moving", rating:"4.6", url:"https://www.twomenandatruck.com", price:"$$$" },
+    { name:"U-Haul", desc:"Rent a truck and DIY your move", best:"Budget-conscious, short distance", rating:"4.0", url:"https://www.uhaul.com", price:"$" },
+    { name:"Mayflower", desc:"One of the oldest, most trusted long-distance movers", best:"Cross-country, large homes", rating:"4.3", url:"https://www.mayflower.com", price:"$$$" },
+    { name:"Allied Van Lines", desc:"National network with full packing services available", best:"Corporate relocation, full service", rating:"4.2", url:"https://www.allied.com", price:"$$$" },
+    { name:"HireAHelper", desc:"Marketplace to find and compare local moving labor", best:"Comparing local movers quickly", rating:"4.5", url:"https://www.hireahelper.com", price:"$$" },
+  ],
+  "Car Shipping": [
+    { name:"Montway Auto Transport", desc:"Top-rated broker with nationwide carrier network", best:"Best overall value and reliability", rating:"4.7", url:"https://www.montway.com", price:"$$" },
+    { name:"Ship.Cars", desc:"Instant quotes and real-time tracking", best:"Fast booking, transparent pricing", rating:"4.5", url:"https://www.ship.cars", price:"$$" },
+    { name:"AmeriFreight", desc:"Discount programs and gap coverage insurance", best:"Budget-friendly with insurance options", rating:"4.4", url:"https://www.amerifreight.net", price:"$" },
+    { name:"uShip", desc:"Marketplace where carriers bid on your shipment", best:"Getting competitive quotes fast", rating:"4.3", url:"https://www.uship.com", price:"$" },
+    { name:"Sherpa Auto Transport", desc:"Price lock guarantee — no surprise fees", best:"Peace of mind, locked pricing", rating:"4.6", url:"https://www.sherpaautotransport.com", price:"$$" },
+  ],
+  "Apartment / Broker": [
+    { name:"Zillow", desc:"Largest rental listing database in the US", best:"Browsing verified listings with photos", rating:"4.5", url:"https://www.zillow.com", price:"Free" },
+    { name:"Apartments.com", desc:"Detailed listings with virtual tours and reviews", best:"Comparing amenities side by side", rating:"4.4", url:"https://www.apartments.com", price:"Free" },
+    { name:"Zumper", desc:"Fast application process, real-time availability", best:"Applying quickly in competitive markets", rating:"4.3", url:"https://www.zumper.com", price:"Free" },
+    { name:"Furnished Finder", desc:"Furnished month-to-month rentals", best:"Short-term housing during transition", rating:"4.4", url:"https://www.furnishedfinder.com", price:"Free" },
+    { name:"Compass", desc:"Tech-forward real estate brokerage", best:"Working with a dedicated agent", rating:"4.6", url:"https://www.compass.com", price:"Agent fee" },
+  ],
+  "Storage Unit": [
+    { name:"Public Storage", desc:"Largest storage company in the US, locations everywhere", best:"Finding storage near your new home", rating:"4.2", url:"https://www.publicstorage.com", price:"$$" },
+    { name:"Extra Space Storage", desc:"Climate-controlled options, strong security", best:"Climate-sensitive items, long-term", rating:"4.4", url:"https://www.extraspace.com", price:"$$" },
+    { name:"CubeSmart", desc:"Flexible month-to-month with no long-term commitment", best:"Short-term storage flexibility", rating:"4.3", url:"https://www.cubesmart.com", price:"$$" },
+    { name:"PODS Storage", desc:"Container delivered to you, stored at their facility", best:"Easy access during the move", rating:"4.4", url:"https://www.pods.com/storage", price:"$$" },
+    { name:"Neighbor.com", desc:"Peer-to-peer storage in people's garages/homes", best:"Cheaper rates, neighborhood storage", rating:"4.3", url:"https://www.neighbor.com", price:"$" },
+  ],
+  "Internet / Utilities": [
+    { name:"Google Fiber", desc:"Gigabit internet in select cities", best:"Fastest speeds where available", rating:"4.7", url:"https://fiber.google.com", price:"$$" },
+    { name:"Xfinity", desc:"Widest national coverage for cable internet", best:"Most cities and neighborhoods", rating:"3.8", url:"https://www.xfinity.com", price:"$$" },
+    { name:"AT&T Fiber", desc:"Fiber-optic speeds in major metros", best:"Reliable fiber in AT&T markets", rating:"4.2", url:"https://www.att.com/internet", price:"$$" },
+    { name:"T-Mobile Home Internet", desc:"5G home internet, no contracts", best:"No-contract flexibility", rating:"4.1", url:"https://www.t-mobile.com/home-internet", price:"$" },
+    { name:"HelloTech", desc:"Tech setup and smart home installation service", best:"Getting everything set up on day one", rating:"4.5", url:"https://www.hellotech.com", price:"$$" },
+    { name:"Updater", desc:"All-in-one app to transfer utilities and services", best:"Managing all utility changes at once", rating:"4.3", url:"https://www.updater.com", price:"Free" },
+  ],
+  "Custom": [],
+};
+
+function RelocationDashboard({ onBack, cities }) {
   const [activeTab, setActiveTab] = useState("timeline");
   const [moveDate, setMoveDate] = useLocalStorage("relo_moveDate", "");
   const [moveCity, setMoveCity] = useLocalStorage("relo_moveCity", "");
@@ -2856,53 +2899,56 @@ function RelocationDashboard({ onClose, cities }) {
   }, {});
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:200, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", padding:"16px" }} onClick={onClose}>
-      <div style={{ background:"#0a0c14", border:"1px solid #2a2a3a", width:"100%", maxWidth:"780px", maxHeight:"90vh", display:"flex", flexDirection:"column", overflow:"hidden" }} onClick={e => e.stopPropagation()}>
+    <div style={{ minHeight:"100vh", background:"#080810", color:"#fff", fontFamily:"Georgia,serif" }}>
+      <div style={{ maxWidth:"900px", margin:"0 auto", padding:"32px 24px 80px" }}>
 
         {/* Header */}
-        <div style={{ padding:"20px 24px 0", borderBottom:"1px solid #1a1a2a", flexShrink:0 }}>
+        <div style={{ borderBottom:"1px solid #1a1a2a", paddingBottom:"0", marginBottom:"0" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px" }}>
             <div>
+              <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", padding:"0 0 8px 0", display:"flex", alignItems:"center", gap:"6px" }}>← Back</button>
               <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"4px" }}>My Relocation</div>
-              <div style={{ fontSize:"22px", fontFamily:"Georgia,serif", color:"#fff" }}>
+              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#fff" }}>
                 {moveCity ? `Moving to ${moveCity}` : "Relocation Planner"}
               </div>
               {daysUntilMove !== null && (
-                <div style={{ fontSize:"12px", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", marginTop:"4px" }}>
-                  {daysUntilMove <= 0 ? "Move day is here!" : `${daysUntilMove} days until move`}
+                <div style={{ fontSize:"13px", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", marginTop:"6px" }}>
+                  {daysUntilMove <= 0 ? "🎉 Move day is here!" : `${daysUntilMove} days until move`}
                 </div>
               )}
             </div>
-            <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-              {/* Quick stats */}
-              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"8px 14px" }}>
-                <div style={{ fontSize:"16px", fontFamily:"Georgia,serif", color:"#4caf50" }}>{checkDone}/{checklist.length}</div>
+            <div style={{ display:"flex", gap:"10px", alignItems:"flex-start", flexWrap:"wrap", justifyContent:"flex-end" }}>
+              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
+                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color:"#4caf50" }}>{checkDone}/{checklist.length}</div>
                 <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>TASKS</div>
               </div>
-              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"8px 14px" }}>
-                <div style={{ fontSize:"16px", fontFamily:"Georgia,serif", color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${remaining.toLocaleString()}</div>
+              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
+                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${remaining.toLocaleString()}</div>
                 <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>LEFT</div>
               </div>
-              <button onClick={onClose} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer", fontSize:"16px" }}>×</button>
+              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
+                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color:"#5b8db8" }}>{vendors.length}</div>
+                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>VENDORS</div>
+              </div>
             </div>
           </div>
 
           {/* Move Setup Bar */}
           <div style={{ display:"flex", gap:"10px", marginBottom:"16px", flexWrap:"wrap" }}>
             <select value={moveCity} onChange={e => setMoveCity(e.target.value)}
-              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity ? "#fff" : "rgba(255,255,255,0.4)", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer", flex:"1 1 140px" }}>
+              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity ? "#fff" : "rgba(255,255,255,0.4)", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"13px", cursor:"pointer", flex:"1 1 180px" }}>
               <option value="">Select destination city...</option>
               {cities.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
             </select>
             <input type="date" value={moveDate} onChange={e => setMoveDate(e.target.value)}
-              style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px", flex:"1 1 140px" }} />
+              style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"13px", flex:"1 1 160px" }} />
           </div>
 
           {/* Tabs */}
-          <div style={{ display:"flex", gap:"0" }}>
+          <div style={{ display:"flex", gap:"0", overflowX:"auto" }}>
             {tabs.map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
-                style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"10px 16px", fontSize:"11px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
+                style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"12px 18px", fontSize:"12px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
                 {t.label}
               </button>
             ))}
@@ -2910,7 +2956,7 @@ function RelocationDashboard({ onClose, cities }) {
         </div>
 
         {/* Content */}
-        <div style={{ overflowY:"auto", flex:1, padding:"20px 24px 24px" }}>
+        <div style={{ paddingTop:"24px" }}>
 
           {/* ── Timeline ── */}
           {activeTab === "timeline" && (
@@ -3187,7 +3233,7 @@ function RelocationDashboard({ onClose, cities }) {
 
               {/* Vendor cards */}
               {vendors.length === 0 && !showAddVendor ? (
-                <div style={{ textAlign:"center", padding:"48px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>
+                <div style={{ textAlign:"center", padding:"32px", color:"rgba(255,255,255,0.35)", fontSize:"13px" }}>
                   No vendors yet — add your movers, car shippers, broker, and more
                 </div>
               ) : (
@@ -3216,6 +3262,51 @@ function RelocationDashboard({ onClose, cities }) {
                   ))}
                 </div>
               )}
+
+              {/* Vendor Suggestions */}
+              <div style={{ marginTop:"32px" }}>
+                <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"20px" }}>Suggested Services</div>
+                {VENDOR_TYPES.filter(t => t !== "Custom").map(type => {
+                  const suggestions = VENDOR_SUGGESTIONS[type] || [];
+                  if (!suggestions.length) return null;
+                  return (
+                    <div key={type} style={{ marginBottom:"28px" }}>
+                      <div style={{ fontSize:"14px", color:"rgba(255,255,255,0.7)", fontFamily:"Georgia,serif", marginBottom:"12px", paddingBottom:"8px", borderBottom:"1px solid #1a1a2a" }}>{type}</div>
+                      <div style={{ display:"grid", gap:"8px" }}>
+                        {suggestions.map((s,i) => (
+                          <div key={i} style={{ background:"#0d0f18", border:"1px solid #1e1e2e", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"12px", flexWrap:"wrap" }}>
+                            <div style={{ flex:1, minWidth:"200px" }}>
+                              <div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"4px" }}>
+                                <span style={{ fontSize:"14px", color:"#fff", fontFamily:"Georgia,serif" }}>{s.name}</span>
+                                <span style={{ fontSize:"10px", padding:"2px 7px", background:"#5b8db822", color:"#5b8db8", border:"1px solid #5b8db833" }}>{s.price}</span>
+                                <span style={{ fontSize:"10px", color:"#ff9800" }}>★ {s.rating}</span>
+                              </div>
+                              <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.45)", marginBottom:"4px" }}>{s.desc}</div>
+                              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)" }}>Best for: {s.best}</div>
+                            </div>
+                            <div style={{ display:"flex", gap:"8px", alignItems:"center", flexShrink:0 }}>
+                              <a href={s.url} target="_blank" rel="noopener noreferrer"
+                                style={{ fontSize:"11px", padding:"6px 14px", background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", textDecoration:"none", letterSpacing:"1px", transition:"all 0.15s" }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor="#5b8db8"; e.currentTarget.style.color="#5b8db8"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a3a"; e.currentTarget.style.color="rgba(255,255,255,0.6)"; }}>
+                                Visit →
+                              </a>
+                              <button onClick={() => {
+                                setVendors([...vendors, { id:Date.now(), name:s.name, type, quote:"", contact:"", notes:s.best, status:"Comparing" }]);
+                              }}
+                                style={{ fontSize:"11px", padding:"6px 14px", background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px", transition:"all 0.15s" }}
+                                onMouseEnter={e => e.currentTarget.style.background="#5b8db844"}
+                                onMouseLeave={e => e.currentTarget.style.background="#5b8db822"}>
+                                + Add
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -3473,16 +3564,15 @@ function NavBar({ onShowDashboard, onShowCoL }) {
 export default function App() {
   const [screen, setScreen] = useState("entry");
   const [showCoL, setShowCoL] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
   return (
     <>
-      <NavBar onShowDashboard={() => setShowDashboard(true)} onShowCoL={() => setShowCoL(true)} />
+      <NavBar onShowDashboard={() => setScreen("dashboard")} onShowCoL={() => setShowCoL(true)} />
       {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
-      {showDashboard && <RelocationDashboard onClose={() => setShowDashboard(false)} cities={CITIES} />}
       <div style={{ paddingTop:"52px" }}>
         {screen === "entry" && <SplitEntry onKnow={() => setScreen("know")} onExplore={() => setScreen("explore")} />}
         {screen === "know" && <KnowPath onBack={() => setScreen("entry")} />}
         {screen === "explore" && <ExplorePath onBack={() => setScreen("entry")} />}
+        {screen === "dashboard" && <RelocationDashboard onBack={() => setScreen("entry")} cities={CITIES} />}
       </div>
     </>
   );
