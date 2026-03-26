@@ -2386,8 +2386,8 @@ function ApartmentsTab({ apartments, stats, neighborhood, city }) {
         )}
         {filtered.map((apt, i) => (
           <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px" }}
-            onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
-            onMouseLeave={e => e.currentTarget.style.transform="none"}
+            onMouseEnter={e => e.currentTarget.style.transform='translateX(3px)'}
+            onMouseLeave={e => e.currentTarget.style.transform='none'}
             style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px", transition:"transform 0.15s" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"8px", marginBottom:"6px" }}>
               <div>
@@ -2638,8 +2638,8 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
                           else { setExpandedItem(key); setSelectedPlace(item); window.scrollTo({top:0,behavior:"smooth"}); }
                         }}
                         style={{ background:isExpanded?`${city.accent}11`:city.card, border:`1px solid ${isExpanded?city.accent+"66":item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${isExpanded?city.accent:item.must?city.accent:city.cardBorder}`, transition:"all 0.2s", position:"relative", overflow:"hidden", cursor:"pointer" }}
-                        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.transform="translateX(3px)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform="none"; }}
+                        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.transform='translateX(3px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform='none'; }}
                       >
                         <PlacePhoto
                           placeName={item.name}
@@ -2902,8 +2902,8 @@ function RelocationDashboard({ onBack, cities }) {
   const W = ({ children, span=1, onClick, accent="#5b8db8" }) => (
     <div onClick={onClick}
       style={{ background:"#0d0f1a", border:`1px solid #1e2030`, borderTop:`2px solid ${accent}`, padding:"20px", gridColumn:`span ${span}`, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
-      onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background="#111320"; }}}
-      onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor="#1e2030"; e.currentTarget.style.background="#0d0f1a"; }}}>
+      onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background='#111320'; }}}
+      onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor='#1e2030'; e.currentTarget.style.background='#0d0f1a'; }}}>
       {children}
     </div>
   );
@@ -3074,8 +3074,8 @@ function RelocationDashboard({ onBack, cities }) {
                 ].map(a => (
                   <button key={a.tab} onClick={() => setActiveTab(a.tab)}
                     style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", padding:"7px 12px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", textAlign:"left", transition:"all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor="#5b8db8"; e.currentTarget.style.color="#fff"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a3a"; e.currentTarget.style.color="rgba(255,255,255,0.6)"; }}>
+                    onMouseEnter={e => { e.currentTarget.style.borderColor='#5b8db8'; e.currentTarget.style.color='#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor='#2a2a3a'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
                     {a.label}
                   </button>
                 ))}
@@ -3430,8 +3430,8 @@ function RelocationDashboard({ onBack, cities }) {
                             <div style={{ display:"flex", gap:"8px", alignItems:"center", flexShrink:0 }}>
                               <a href={s.url} target="_blank" rel="noopener noreferrer"
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", textDecoration:"none", letterSpacing:"1px", transition:"all 0.15s" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor="#5b8db8"; e.currentTarget.style.color="#5b8db8"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a3a"; e.currentTarget.style.color="rgba(255,255,255,0.6)"; }}>
+                                onMouseEnter={e => { e.currentTarget.style.borderColor='#5b8db8'; e.currentTarget.style.color='#5b8db8'; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor='#2a2a3a'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
                                 Visit →
                               </a>
                               <button onClick={() => {
@@ -3634,14 +3634,14 @@ function NavBar({ onShowDashboard, onShowCoL }) {
         <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
           <button onClick={onShowDashboard}
             style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.6)", padding:"6px 14px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color="#fff"}
-            onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.6)"}>
+            onMouseEnter={e => e.currentTarget.style.color='#fff'}
+            onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.6)'}>
             📋 My Move
           </button>
           <button onClick={onShowCoL}
             style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.6)", padding:"6px 14px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color="#fff"}
-            onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.6)"}>
+            onMouseEnter={e => e.currentTarget.style.color='#fff'}
+            onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.6)'}>
             💰 Cost of Living
           </button>
         </div>
@@ -3652,14 +3652,14 @@ function NavBar({ onShowDashboard, onShowCoL }) {
             <div style={{ display:"flex", gap:"8px" }}>
               <button onClick={() => setShowAuth(true)}
                 style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.2)", color:"rgba(255,255,255,0.8)", padding:"6px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.5)"; e.currentTarget.style.color="#fff"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.2)"; e.currentTarget.style.color="rgba(255,255,255,0.8)"; }}>
+                onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.5)'; e.currentTarget.style.color='#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'; e.currentTarget.style.color='rgba(255,255,255,0.8)'; }}>
                 Log in
               </button>
               <button onClick={() => setShowAuth(true)}
                 style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"6px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"opacity 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
-                onMouseLeave={e => e.currentTarget.style.opacity="1"}>
+                onMouseEnter={e => e.currentTarget.style.opacity='0.85'}
+                onMouseLeave={e => e.currentTarget.style.opacity='1'}>
                 Sign up
               </button>
             </div>
@@ -3679,20 +3679,20 @@ function NavBar({ onShowDashboard, onShowCoL }) {
               </div>
               <button onClick={() => { setShowDropdown(false); onShowDashboard(); }}
                 style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                 📋 My Move Dashboard
               </button>
               <button onClick={() => { setShowDropdown(false); onShowCoL(); }}
                 style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                 💰 Cost of Living
               </button>
               <button onClick={handleLogout}
                 style={{ width:"100%", background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                 ↩ Log out
               </button>
             </div>
