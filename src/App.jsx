@@ -2923,7 +2923,7 @@ function RelocationDashboard({ onBack, cities }) {
           <div>
             <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", padding:"0 0 10px 0", display:"flex", alignItems:"center", gap:"6px" }}>← Back to Explore</button>
             <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>My Relocation</div>
-            <div style={{ fontSize:"32px", color:"#fff" }}>{moveCity ? `Moving to ${moveCity}` : "Relocation Planner"}</div>
+            <div style={{ fontSize:"32px", color:"#fff" }}>{moveCity ? "Moving to "+moveCity : "Relocation Planner"}</div>
           </div>
           <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
             <select value={moveCity} onChange={e => setMoveCity(e.target.value)}
@@ -3110,10 +3110,10 @@ function RelocationDashboard({ onBack, cities }) {
                   <div style={{ position:"absolute", left:"13px", top:0, bottom:0, width:"2px", background:"#2a2a3a" }} />
                   {milestones.map((m,i) => (
                     <div key={i} style={{ display:"flex", gap:"16px", marginBottom:"16px", alignItems:"flex-start" }}>
-                      <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: m.done ? "#4caf50" : "#1a1a2e", border:`2px solid ${m.done ? "#4caf50" : "#2a2a3a"}`, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", zIndex:1 }}>
+                      <div style={{ width:"28px", height:"28px", borderRadius:"50%", background: m.done ? "#4caf50" : "#1a1a2e", border:"2px solid "+(m.done ? "#4caf50" : "#2a2a3a"), flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", zIndex:1 }}>
                         {m.done ? "✓" : ""}
                       </div>
-                      <div style={{ background:"#111", border:`1px solid ${m.done ? "#4caf5033" : "#2a2a3a"}`, padding:"12px 16px", flex:1 }}>
+                      <div style={{ background:"#111", border:"1px solid "+(m.done ? "#4caf5033" : "#2a2a3a"), padding:"12px 16px", flex:1 }}>
                         <div style={{ fontSize:"13px", color: m.done ? "rgba(255,255,255,0.5)" : "#fff", textDecoration: m.done ? "line-through" : "none", marginBottom:"3px" }}>{m.label}</div>
                         <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)" }}>{m.date}</div>
                       </div>
@@ -3143,8 +3143,8 @@ function RelocationDashboard({ onBack, cities }) {
                   <div style={{ display:"grid", gap:"6px" }}>
                     {items.map(item => (
                       <div key={item.id} onClick={() => toggleCheck(item.id)}
-                        style={{ display:"flex", alignItems:"center", gap:"12px", background:"#111", border:`1px solid ${item.done ? "#4caf5033" : "#2a2a3a"}`, padding:"10px 14px", cursor:"pointer", transition:"all 0.15s" }}>
-                        <div style={{ width:"18px", height:"18px", borderRadius:"3px", border:`2px solid ${item.done ? "#4caf50" : "#3a3a4a"}`, background: item.done ? "#4caf50" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", color:"#fff" }}>
+                        style={{ display:"flex", alignItems:"center", gap:"12px", background:"#111", border:"1px solid "+(item.done ? "#4caf5033" : "#2a2a3a"), padding:"10px 14px", cursor:"pointer", transition:"all 0.15s" }}>
+                        <div style={{ width:"18px", height:"18px", borderRadius:"3px", border:"2px solid "+(item.done ? "#4caf50" : "#3a3a4a"), background: item.done ? "#4caf50" : "transparent", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", color:"#fff" }}>
                           {item.done ? "✓" : ""}
                         </div>
                         <span style={{ fontSize:"13px", color: item.done ? "rgba(255,255,255,0.4)" : "#fff", textDecoration: item.done ? "line-through" : "none" }}>{item.task}</span>
@@ -3189,7 +3189,7 @@ function RelocationDashboard({ onBack, cities }) {
                     <div key={i} style={{ background:"#111", border:"1px solid #2a2a3a", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
                         <div style={{ fontSize:"14px", color:"#fff", fontFamily:"Georgia,serif", marginBottom:"3px" }}>{a.name}</div>
-                        <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>{a.address} · {a.beds === 0 ? "Studio" : `${a.beds}BR`} · {a.rent}</div>
+                        <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)" }}>{a.address} · {a.beds === 0 ? "Studio" : a.beds+"BR"} · {a.rent}</div>
                       </div>
                       <button onClick={() => removeApartment(a.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"28px", height:"28px", borderRadius:"50%", cursor:"pointer", fontSize:"14px" }}>×</button>
                     </div>
@@ -3214,7 +3214,7 @@ function RelocationDashboard({ onBack, cities }) {
                       if (!budget.categories?.length) setBudget({...budget, categories: ALL_BUDGET_CATS.map(c=>({...c,active:false,limit:0}))});
                       else toggleCategory(cat.id);
                     }}
-                      style={{ padding:"6px 12px", fontSize:"11px", cursor:"pointer", fontFamily:"Georgia,serif", border:`1px solid ${cat.active?"#5b8db8":"#2a2a3a"}`, background: cat.active?"#5b8db822":"transparent", color: cat.active?"#5b8db8":"rgba(255,255,255,0.5)", transition:"all 0.15s" }}>
+                      style={{ padding:"6px 12px", fontSize:"11px", cursor:"pointer", fontFamily:"Georgia,serif", border:"1px solid "+(cat.active?"#5b8db8":"#2a2a3a"), background: cat.active?"#5b8db822":"transparent", color: cat.active?"#5b8db8":"rgba(255,255,255,0.5)", transition:"all 0.15s" }}>
                       {cat.icon} {cat.label}
                     </button>
                   ))}
@@ -3282,7 +3282,7 @@ function RelocationDashboard({ onBack, cities }) {
                         <div key={cat.id}>
                           <div style={{ display:"flex", justifyContent:"space-between", fontSize:"11px", marginBottom:"3px" }}>
                             <span style={{ color:"rgba(255,255,255,0.6)" }}>{cat.icon} {cat.label}</span>
-                            <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?` / $${cat.limit.toLocaleString()}`:""}</span>
+                            <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?" / $"+cat.limit.toLocaleString():""}</span>
                           </div>
                           <div style={{ height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
                             <div style={{ height:"100%", width:(cat.limit>0?pct:0)+"%", background:barColor, borderRadius:"3px", transition:"width 0.3s" }} />
@@ -3381,7 +3381,7 @@ function RelocationDashboard({ onBack, cities }) {
               ) : (
                 <div style={{ display:"grid", gap:"10px" }}>
                   {vendors.map(v => (
-                    <div key={v.id} style={{ background:"#111", border:`1px solid ${statusColor[v.status]||"#2a2a3a"}33`, borderLeft:`3px solid ${statusColor[v.status]||"#2a2a3a"}`, padding:"16px" }}>
+                    <div key={v.id} style={{ background:"#111", border:"1px solid "+(statusColor[v.status]||"#2a2a3a")+"33", borderLeft:"3px solid "+(statusColor[v.status]||"#2a2a3a"), padding:"16px" }}>
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"10px", marginBottom:"10px" }}>
                         <div>
                           <div style={{ fontSize:"15px", fontFamily:"Georgia,serif", color:"#fff", marginBottom:"3px" }}>{v.name}</div>
@@ -3389,7 +3389,7 @@ function RelocationDashboard({ onBack, cities }) {
                         </div>
                         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
                           <select value={v.status} onChange={e => updateVendorStatus(v.id, e.target.value)}
-                            style={{ background:"#0a0a14", border:`1px solid ${statusColor[v.status]}44`, color:statusColor[v.status]||"#fff", padding:"4px 8px", fontFamily:"Georgia,serif", fontSize:"11px", cursor:"pointer" }}>
+                            style={{ background:"#0a0a14", border:"1px solid "+(statusColor[v.status])+"44", color:statusColor[v.status]||"#fff", padding:"4px 8px", fontFamily:"Georgia,serif", fontSize:"11px", cursor:"pointer" }}>
                             {VENDOR_STATUSES.map(s => <option key={s}>{s}</option>)}
                           </select>
                           <button onClick={() => removeVendor(v.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"12px" }}>×</button>
