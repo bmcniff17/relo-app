@@ -2905,14 +2905,14 @@ function RelocationDashboard({ onBack, cities }) {
 
   const W = ({ children, span=1, onClick, accent="#5b8db8" }) => (
     <div onClick={onClick}
-      style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:`2px solid ${accent}`, padding:"20px", gridColumn:`span ${span}`, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
+      style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid "+accent, padding:"20px", gridColumn:"span "+span, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
       onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background='#111320'; }}}
       onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor='#1e2030'; e.currentTarget.style.background='#0d0f1a'; }}}>
       {children}
     </div>
   );
   const WLabel = ({children}) => <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>{children}</div>;
-  const WVal = ({children, color="#fff", size=28}) => <div style={{ fontSize:`${size}px`, fontFamily:"Georgia,serif", color, lineHeight:1.1 }}>{children}</div>;
+  const WVal = ({children, color="#fff", size=28}) => <div style={{ fontSize:size+"px", fontFamily:"Georgia,serif", color, lineHeight:1.1 }}>{children}</div>;
 
   return (
     <div style={{ minHeight:"100vh", background:"#080810", color:"#fff", fontFamily:"Georgia,serif" }}>
@@ -2958,7 +2958,7 @@ function RelocationDashboard({ onBack, cities }) {
               <WLabel>Checklist Progress</WLabel>
               <WVal color="#4caf50">{checkDone}<span style={{ fontSize:"16px", color:"rgba(255,255,255,0.3)" }}>/{checklist.length}</span></WVal>
               <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
-                <div style={{ height:"100%", width:`${checklist.length>0?(checkDone/checklist.length)*100:0}%`, background:"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+                <div style={{ height:"100%", width:(checklist.length>0?((checkDone/checklist.length)*100).toFixed(1):0)+"%", background:"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
               </div>
               <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>{checklist.length - checkDone} tasks remaining · tap to view</div>
             </W>
@@ -2969,7 +2969,7 @@ function RelocationDashboard({ onBack, cities }) {
               <WVal color={remaining>=0?"#4caf50":"#f44336"}>${Math.abs(remaining).toLocaleString()}</WVal>
               <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)", marginTop:"4px" }}>{remaining>=0?"remaining":"over budget"}</div>
               <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
-                <div style={{ height:"100%", width:`${totalBudget>0?Math.min(100,(totalSpent/totalBudget)*100):0}%`, background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+                <div style={{ height:"100%", width:(totalBudget>0?Math.min(100,(totalSpent/totalBudget)*100).toFixed(1):0)+"%", background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
               </div>
               <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>${totalSpent.toLocaleString()} spent of ${totalBudget.toLocaleString()}</div>
             </W>
@@ -3135,7 +3135,7 @@ function RelocationDashboard({ onBack, cities }) {
               </div>
               <div style={{ marginBottom:"8px", fontSize:"12px", color:"rgba(255,255,255,0.4)" }}>{checkDone} of {checklist.length} completed</div>
               <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px", marginBottom:"20px" }}>
-                <div style={{ height:"100%", width:`${(checkDone/checklist.length)*100}%`, background:"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+                <div style={{ height:"100%", width:((checkDone/checklist.length)*100).toFixed(1)+"%", background:"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
               </div>
               {Object.entries(checklistByCategory).map(([cat, items]) => (
                 <div key={cat} style={{ marginBottom:"20px" }}>
@@ -3241,7 +3241,7 @@ function RelocationDashboard({ onBack, cities }) {
                           {cat.limit > 0 && (
                             <div style={{ flex:1, minWidth:"120px" }}>
                               <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px" }}>
-                                <div style={{ height:"100%", width:`${pct}%`, background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+                                <div style={{ height:"100%", width:pct+"%", background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
                               </div>
                               <div style={{ fontSize:"10px", color: overBudget?"#f44336":"rgba(255,255,255,0.35)", marginTop:"2px" }}>
                                 ${spent.toLocaleString()} / ${cat.limit.toLocaleString()}
@@ -3269,7 +3269,7 @@ function RelocationDashboard({ onBack, cities }) {
                       <span style={{ color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${Math.abs(remaining).toLocaleString()} {remaining >= 0 ? "remaining" : "over budget"}</span>
                     </div>
                     <div style={{ height:"8px", background:"#1a1a2a", borderRadius:"4px" }}>
-                      <div style={{ height:"100%", width:`${Math.min(100,(totalSpent/totalBudget)*100)}%`, background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"4px", transition:"width 0.3s" }} />
+                      <div style={{ height:"100%", width:Math.min(100,(totalSpent/totalBudget)*100).toFixed(1)+"%", background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"4px", transition:"width 0.3s" }} />
                     </div>
                   </div>
                   {/* Per-category bars */}
@@ -3285,7 +3285,7 @@ function RelocationDashboard({ onBack, cities }) {
                             <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?` / $${cat.limit.toLocaleString()}`:""}</span>
                           </div>
                           <div style={{ height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
-                            <div style={{ height:"100%", width:`${cat.limit>0?pct:0}%`, background:barColor, borderRadius:"3px", transition:"width 0.3s" }} />
+                            <div style={{ height:"100%", width:(cat.limit>0?pct:0)+"%", background:barColor, borderRadius:"3px", transition:"width 0.3s" }} />
                           </div>
                         </div>
                       );
@@ -3308,7 +3308,7 @@ function RelocationDashboard({ onBack, cities }) {
                   </select>
                   <input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount:e.target.value})} placeholder="Amount $"
                     style={{ flex:"1 1 80px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
-                  <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>+ Add</button>
+                  <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>Add</button>
                 </div>
               </div>
 
@@ -3340,7 +3340,7 @@ function RelocationDashboard({ onBack, cities }) {
                 <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.5)" }}>Track quotes, contacts, and status for all your vendors</div>
                 <button onClick={() => setShowAddVendor(!showAddVendor)}
                   style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"8px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>
-                  + Add Vendor
+                  Add Vendor
                 </button>
               </div>
 
@@ -3431,7 +3431,7 @@ function RelocationDashboard({ onBack, cities }) {
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", textDecoration:"none", letterSpacing:"1px", transition:"all 0.15s" }}
                                 onMouseEnter={e => { e.currentTarget.style.borderColor='#5b8db8'; e.currentTarget.style.color='#5b8db8'; }}
                                 onMouseLeave={e => { e.currentTarget.style.borderColor='#2a2a3a'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
-                                Visit →
+                                Visit &#8594;
                               </a>
                               <button onClick={() => {
                                 setVendors([...vendors, { id:Date.now(), name:s.name, type, quote:"", contact:"", notes:s.best, status:"Comparing" }]);
@@ -3439,7 +3439,7 @@ function RelocationDashboard({ onBack, cities }) {
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px", transition:"all 0.15s" }}
                                 onMouseEnter={e => e.currentTarget.style.background='#5b8db844'}
                                 onMouseLeave={e => e.currentTarget.style.background='#5b8db822'}>
-                                + Add
+                                Add
                               </button>
                             </div>
                           </div>
