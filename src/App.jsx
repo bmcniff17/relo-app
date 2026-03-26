@@ -2760,7 +2760,7 @@ const VENDOR_SUGGESTIONS = {
 };
 
 function RelocationDashboard({ onBack, cities }) {
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState(null);
   const [moveDate, setMoveDate] = useLocalStorage("relo_moveDate", "");
   const [moveCity, setMoveCity] = useLocalStorage("relo_moveCity", "");
   const [checklist, setChecklist] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
@@ -2898,67 +2898,210 @@ function RelocationDashboard({ onBack, cities }) {
     return acc;
   }, {});
 
+  // Widget styles helper
+  const W = ({ children, span=1, onClick, accent="#5b8db8" }) => (
+    <div onClick={onClick}
+      style={{ background:"#0d0f1a", border:`1px solid #1e2030`, borderTop:`2px solid ${accent}`, padding:"20px", gridColumn:`span ${span}`, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
+      onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background="#111320"; }}}
+      onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor="#1e2030"; e.currentTarget.style.background="#0d0f1a"; }}}>
+      {children}
+    </div>
+  );
+  const WLabel = ({children}) => <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>{children}</div>;
+  const WVal = ({children, color="#fff", size=28}) => <div style={{ fontSize:`${size}px`, fontFamily:"Georgia,serif", color, lineHeight:1.1 }}>{children}</div>;
+
+  const vendorsBooked = vendors.filter(v => v.status === "Confirmed" || v.status === "Booked").length;
+  const vendorsComparing = vendors.filter(v => v.status === "Comparing" || v.status === "Quoted").length;
+  const nextTasks = checklist.filter(c => !c.done).slice(0, 3);
+  const upcomingMilestones = milestones.filter(m => !m.done).slice(0, 3);
+
   return (
     <div style={{ minHeight:"100vh", background:"#080810", color:"#fff", fontFamily:"Georgia,serif" }}>
-      <div style={{ maxWidth:"900px", margin:"0 auto", padding:"32px 24px 80px" }}>
+      <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"32px 24px 80px" }}>
 
         {/* Header */}
-        <div style={{ borderBottom:"1px solid #1a1a2a", paddingBottom:"0", marginBottom:"0" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"16px" }}>
-            <div>
-              <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", padding:"0 0 8px 0", display:"flex", alignItems:"center", gap:"6px" }}>← Back</button>
-              <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.35)", marginBottom:"4px" }}>My Relocation</div>
-              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#fff" }}>
-                {moveCity ? `Moving to ${moveCity}` : "Relocation Planner"}
-              </div>
-              {daysUntilMove !== null && (
-                <div style={{ fontSize:"13px", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", marginTop:"6px" }}>
-                  {daysUntilMove <= 0 ? "🎉 Move day is here!" : `${daysUntilMove} days until move`}
-                </div>
-              )}
-            </div>
-            <div style={{ display:"flex", gap:"10px", alignItems:"flex-start", flexWrap:"wrap", justifyContent:"flex-end" }}>
-              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
-                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color:"#4caf50" }}>{checkDone}/{checklist.length}</div>
-                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>TASKS</div>
-              </div>
-              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
-                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${remaining.toLocaleString()}</div>
-                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>LEFT</div>
-              </div>
-              <div style={{ textAlign:"center", background:"#111", border:"1px solid #2a2a3a", padding:"10px 18px" }}>
-                <div style={{ fontSize:"20px", fontFamily:"Georgia,serif", color:"#5b8db8" }}>{vendors.length}</div>
-                <div style={{ fontSize:"9px", color:"rgba(255,255,255,0.35)", letterSpacing:"1px" }}>VENDORS</div>
-              </div>
-            </div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"28px", flexWrap:"wrap", gap:"12px" }}>
+          <div>
+            <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", padding:"0 0 10px 0", display:"flex", alignItems:"center", gap:"6px" }}>← Back to Explore</button>
+            <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>My Relocation</div>
+            <div style={{ fontSize:"32px", color:"#fff" }}>{moveCity ? `Moving to ${moveCity}` : "Relocation Planner"}</div>
           </div>
-
-          {/* Move Setup Bar */}
-          <div style={{ display:"flex", gap:"10px", marginBottom:"16px", flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
             <select value={moveCity} onChange={e => setMoveCity(e.target.value)}
-              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity ? "#fff" : "rgba(255,255,255,0.4)", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"13px", cursor:"pointer", flex:"1 1 180px" }}>
-              <option value="">Select destination city...</option>
+              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity?"#fff":"rgba(255,255,255,0.4)", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
+              <option value="">Select city...</option>
               {cities.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
             </select>
             <input type="date" value={moveDate} onChange={e => setMoveDate(e.target.value)}
-              style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"13px", flex:"1 1 160px" }} />
-          </div>
-
-          {/* Tabs */}
-          <div style={{ display:"flex", gap:"0", overflowX:"auto" }}>
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)}
-                style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"12px 18px", fontSize:"12px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
-                {t.label}
-              </button>
-            ))}
+              style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
           </div>
         </div>
 
-        {/* Content */}
-        <div style={{ paddingTop:"24px" }}>
+        {/* ── Widget Grid or Detail View ── */}
+        {!activeTab ? (
+          /* OVERVIEW GRID */
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"16px" }}>
 
-          {/* ── Timeline ── */}
+            {/* Countdown Widget */}
+            <W span={1} accent="#5b8db8">
+              <WLabel>Move Countdown</WLabel>
+              {daysUntilMove !== null ? (
+                <>
+                  <WVal color={daysUntilMove<=7?"#f44336":daysUntilMove<=30?"#ff9800":"#4caf50"} size={42}>{daysUntilMove <= 0 ? "🎉" : daysUntilMove}</WVal>
+                  <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.4)", marginTop:"6px" }}>{daysUntilMove <= 0 ? "Move day!" : "days to go"}</div>
+                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"4px" }}>{new Date(moveDate).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
+                </>
+              ) : <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Set your move date →</div>}
+            </W>
+
+            {/* Checklist Widget */}
+            <W span={1} accent="#4caf50" onClick={() => setActiveTab("checklist")}>
+              <WLabel>Checklist Progress</WLabel>
+              <WVal color="#4caf50">{checkDone}<span style={{ fontSize:"16px", color:"rgba(255,255,255,0.3)" }}>/{checklist.length}</span></WVal>
+              <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
+                <div style={{ height:"100%", width:`${checklist.length>0?(checkDone/checklist.length)*100:0}%`, background:"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+              </div>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>{checklist.length - checkDone} tasks remaining · tap to view</div>
+            </W>
+
+            {/* Budget Widget */}
+            <W span={1} accent="#ff9800" onClick={() => setActiveTab("budget")}>
+              <WLabel>Budget</WLabel>
+              <WVal color={remaining>=0?"#4caf50":"#f44336"}>${Math.abs(remaining).toLocaleString()}</WVal>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)", marginTop:"4px" }}>{remaining>=0?"remaining":"over budget"}</div>
+              <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
+                <div style={{ height:"100%", width:`${totalBudget>0?Math.min(100,(totalSpent/totalBudget)*100):0}%`, background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+              </div>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>${totalSpent.toLocaleString()} spent of ${totalBudget.toLocaleString()}</div>
+            </W>
+
+            {/* Vendor Status Widget */}
+            <W span={1} accent="#9c27b0" onClick={() => setActiveTab("vendors")}>
+              <WLabel>Vendors</WLabel>
+              <div style={{ display:"flex", gap:"20px", marginTop:"4px" }}>
+                <div>
+                  <WVal color="#4caf50" size={28}>{vendorsBooked}</WVal>
+                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Booked</div>
+                </div>
+                <div>
+                  <WVal color="#ff9800" size={28}>{vendorsComparing}</WVal>
+                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Comparing</div>
+                </div>
+                <div>
+                  <WVal color="rgba(255,255,255,0.4)" size={28}>{vendors.length}</WVal>
+                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Total</div>
+                </div>
+              </div>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"10px" }}>tap to manage vendors</div>
+            </W>
+
+            {/* Next Tasks Widget */}
+            <W span={1} accent="#5b8db8" onClick={() => setActiveTab("checklist")}>
+              <WLabel>Next Tasks</WLabel>
+              {nextTasks.length === 0 ? (
+                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>🎉 All tasks complete!</div>
+              ) : (
+                <div style={{ display:"grid", gap:"7px", marginTop:"4px" }}>
+                  {nextTasks.map(t => (
+                    <div key={t.id} onClick={e => { e.stopPropagation(); toggleCheck(t.id); }}
+                      style={{ display:"flex", gap:"10px", alignItems:"center", cursor:"pointer" }}>
+                      <div style={{ width:"14px", height:"14px", borderRadius:"3px", border:"1.5px solid #3a3a5a", flexShrink:0 }} />
+                      <span style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)" }}>{t.task}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </W>
+
+            {/* Timeline Widget */}
+            <W span={1} accent="#c49a2a" onClick={() => setActiveTab("timeline")}>
+              <WLabel>Upcoming Milestones</WLabel>
+              {!moveDate ? (
+                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Set move date to see milestones</div>
+              ) : upcomingMilestones.length === 0 ? (
+                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>🎉 All milestones complete!</div>
+              ) : (
+                <div style={{ display:"grid", gap:"8px", marginTop:"4px" }}>
+                  {upcomingMilestones.map((m,i) => (
+                    <div key={i} style={{ display:"flex", gap:"10px", alignItems:"flex-start" }}>
+                      <div style={{ width:"8px", height:"8px", borderRadius:"50%", background:"#c49a2a", flexShrink:0, marginTop:"4px" }} />
+                      <div>
+                        <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.7)" }}>{m.label}</div>
+                        <div style={{ fontSize:"10px", color:"rgba(255,255,255,0.3)" }}>{m.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </W>
+
+            {/* Saved Neighborhoods Widget */}
+            <W span={1} accent="#2e7d6b" onClick={() => setActiveTab("neighborhoods")}>
+              <WLabel>Saved Neighborhoods</WLabel>
+              <WVal color="#5db8a4" size={32}>{savedNeighborhoods.length}</WVal>
+              {savedNeighborhoods.length > 0 ? (
+                <div style={{ marginTop:"8px", display:"flex", gap:"6px", flexWrap:"wrap" }}>
+                  {savedNeighborhoods.slice(0,3).map(n => (
+                    <span key={n.name} style={{ fontSize:"10px", padding:"2px 8px", background:"#2e7d6b22", border:"1px solid #2e7d6b44", color:"#5db8a4" }}>{n.name}</span>
+                  ))}
+                  {savedNeighborhoods.length > 3 && <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.3)" }}>+{savedNeighborhoods.length-3} more</span>}
+                </div>
+              ) : <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>Browse cities to save neighborhoods</div>}
+            </W>
+
+            {/* Saved Apartments Widget */}
+            <W span={1} accent="#d95f2b" onClick={() => setActiveTab("neighborhoods")}>
+              <WLabel>Saved Apartments</WLabel>
+              <WVal color="#f4a16a" size={32}>{savedApartments.length}</WVal>
+              {savedApartments.length > 0 ? (
+                <div style={{ marginTop:"8px", display:"grid", gap:"4px" }}>
+                  {savedApartments.slice(0,2).map(a => (
+                    <div key={a.id} style={{ fontSize:"11px", color:"rgba(255,255,255,0.5)" }}>{a.name} · {a.rent}</div>
+                  ))}
+                </div>
+              ) : <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>Browse apartments tab to save listings</div>}
+            </W>
+
+            {/* Quick Actions Widget */}
+            <W span={1} accent="#5b8db8">
+              <WLabel>Quick Actions</WLabel>
+              <div style={{ display:"grid", gap:"8px", marginTop:"4px" }}>
+                {[
+                  { label:"📋 Full Checklist", tab:"checklist" },
+                  { label:"💰 Budget & Expenses", tab:"budget" },
+                  { label:"🏢 Manage Vendors", tab:"vendors" },
+                  { label:"🗓 Move Timeline", tab:"timeline" },
+                ].map(a => (
+                  <button key={a.tab} onClick={() => setActiveTab(a.tab)}
+                    style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", padding:"7px 12px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", textAlign:"left", transition:"all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor="#5b8db8"; e.currentTarget.style.color="#fff"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a3a"; e.currentTarget.style.color="rgba(255,255,255,0.6)"; }}>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </W>
+
+          </div>
+        ) : (
+          /* DETAIL VIEW */
+          <div>
+            <button onClick={() => setActiveTab(null)}
+              style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", marginBottom:"20px", display:"flex", alignItems:"center", gap:"8px" }}>
+              ← Back to Overview
+            </button>
+
+            {/* Tabs for detail navigation */}
+            <div style={{ display:"flex", gap:"0", overflowX:"auto", borderBottom:"1px solid #1a1a2a", marginBottom:"24px" }}>
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => setActiveTab(t.id)}
+                  style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"12px 18px", fontSize:"12px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── Timeline ── */}
           {activeTab === "timeline" && (
             <div>
               {!moveDate ? (
@@ -2982,7 +3125,7 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-          {/* ── Checklist ── */}
+            {/* ── Checklist ── */}
           {activeTab === "checklist" && (
             <div>
               <div style={{ display:"flex", gap:"8px", marginBottom:"20px" }}>
@@ -3057,7 +3200,7 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-          {/* ── Budget ── */}
+            {/* ── Budget ── */}
           {activeTab === "budget" && (
             <div>
               {/* Step 1: Pick categories */}
@@ -3191,7 +3334,7 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-          {/* ── Vendors ── */}
+            {/* ── Vendors ── */}
           {activeTab === "vendors" && (
             <div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
@@ -3310,6 +3453,12 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+          </div>
+        )}
       </div>
     </div>
   );
