@@ -1962,7 +1962,7 @@ function PlaceDetailPanel({ item, placeType, neighborhood, city, onClose }) {
             {/* Vibe + Price */}
             <div style={{ display:"flex", gap:"10px", flexWrap:"wrap", marginBottom:"14px", alignItems:"center" }}>
               <span style={{ fontSize:"11px", padding:"3px 10px", background:city.accent+"22", color:city.accent, border:`1px solid ${city.accent}44` }}>
-                {"⭐".repeat(Math.round((detail.vibeRating||7)/2))} {detail.vibeRating}/10 vibe
+                {"⭐".repeat(Math.round((detail.vibeRating||7)/2))} {detail.vibeRating}{"/10 vibe"}
               </span>
               <span style={{ fontSize:"11px", padding:"3px 10px", background:city.card, color:city.textMuted, border:`1px solid ${city.cardBorder}` }}>{detail.priceRange}</span>
               <span style={{ fontSize:"11px", color:city.textMuted, fontStyle:"italic" }}>{detail.vibeDesc}</span>
@@ -2069,7 +2069,7 @@ function SchoolsTab({ schools, city }) {
             {showRating && s.rating && (
               <div style={{ textAlign:"center", minWidth:"44px" }}>
                 <div style={{ fontSize:"20px", fontFamily:city.displayFont, color:ratingColor(s.rating) }}>{s.rating}</div>
-                <div style={{ fontSize:"9px", color:city.textMuted }}>/10</div>
+                <div style={{ fontSize:"9px", color:city.textMuted }}>{"/10"}</div>
               </div>
             )}
           </div>
@@ -2947,7 +2947,7 @@ function RelocationDashboard({ onBack, cities }) {
             {/* Checklist */}
             <div onClick={() => setActiveTab("checklist")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #4caf50", padding:"20px", cursor:"pointer" }}>
               <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Checklist</div>
-              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#4caf50", lineHeight:1.1 }}>{checkDone}/{checklist.length}</div>
+              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#4caf50", lineHeight:1.1 }}>{checkDone}{"/"}{checklist.length}</div>
               <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
                 <div style={{ height:"100%", width: checklist.length > 0 ? Math.round((checkDone/checklist.length)*100) + "%" : "0%", background:"#4caf50", borderRadius:"3px" }} />
               </div>
@@ -3453,7 +3453,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
 async function sbAuth(endpoint, body) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+  const res = await fetch(SUPABASE_URL + "/auth/v1/" + endpoint, {
     method: "POST",
     headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -3468,7 +3468,7 @@ async function getSession() {
     if (!SUPABASE_URL || !SUPABASE_KEY) return null;
     const token = localStorage.getItem("relo_token");
     if (!token) return null;
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
     });
     if (!res.ok) { localStorage.removeItem("relo_token"); return null; }
@@ -3480,18 +3480,18 @@ async function getSession() {
 async function saveUserData(token, key, value) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return;
   try {
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
     });
     const user = await userRes.json();
-    const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/saved_data?user_id=eq.${user.id}&key=eq.${encodeURIComponent(key)}&select=id`, {
+    const checkRes = await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id + "&key=eq." + encodeURIComponent(key) + "&select=id", {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
     });
     const existing = await checkRes.json();
     const method = existing?.length > 0 ? "PATCH" : "POST";
     const url = existing?.length > 0
-      ? `${SUPABASE_URL}/rest/v1/saved_data?id=eq.${existing[0].id}`
-      : `${SUPABASE_URL}/rest/v1/saved_data`;
+      ? SUPABASE_URL + "/rest/v1/saved_data?id=eq." + existing[0].id
+      : SUPABASE_URL + "/rest/v1/saved_data";
     await fetch(url, {
       method,
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
@@ -3503,11 +3503,11 @@ async function saveUserData(token, key, value) {
 async function loadAllUserData(token) {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
   try {
-    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
     });
     const user = await userRes.json();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/saved_data?user_id=eq.${user.id}&select=key,value`, {
+    const res = await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id + "&select=key,value", {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
     });
     const rows = await res.json();
