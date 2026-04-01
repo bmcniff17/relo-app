@@ -1200,7 +1200,7 @@ function KnowPath({ onBack }) {
         {Skyline && <Skyline accent={c.accent} opacity={0.14} />}
         <div style={{ position: "absolute", inset: 0, background: `${c.bg}cc` }} />
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "2px", background: "rgba(255,255,255,0.06)", zIndex: 100 }}>
-          <div style={{ height: "100%", background: `linear-gradient(90deg, ${c.accent}, ${c.accentLight})`, width: `${(quizStep / QUIZ.length) * 100}%`, transition: "width 0.4s ease" }} />
+          <div style={{ height: "100%", background: `linear-gradient(90deg, ${c.accent}, ${c.accentLight})`, width: String((quizStep / QUIZ.length) * 100) + "%", transition: "width 0.4s ease" }} />
         </div>
         <div style={{ maxWidth: "500px", width: "100%", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "30px" }}>
@@ -1365,7 +1365,7 @@ function KnowPath({ onBack }) {
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <div style={{ width: "48px", height: "3px", background: c.cardBorder, borderRadius: "2px", overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${maxScore > 0 ? (n.score / maxScore) * 100 : 0}%`, background: isLeast ? "#4a4a6a" : c.accent, borderRadius: "2px" }} />
+                          <div style={{ height: "100%", width: String(maxScore > 0 ? (n.score / maxScore) * 100 : 0) + "%", background: isLeast ? "#4a4a6a" : c.accent, borderRadius: "2px" }} />
                         </div>
                         <div style={{ fontSize: "18px", fontFamily: c.displayFont, color: isLeast ? c.textMuted : c.accent, opacity: isLeast ? 0.5 : 1, minWidth: "22px", textAlign: "right" }}>{n.score}</div>
                       </div>
@@ -1488,7 +1488,7 @@ function ExplorePath({ onBack }) {
         <SeattleSkyline accent="#2E7D6B" opacity={0.12} />
         <div style={{ position: "absolute", inset: 0, background: "#080E0Dcc" }} />
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: "2px", background: "rgba(255,255,255,0.05)", zIndex: 100 }}>
-          <div style={{ height: "100%", background: "linear-gradient(90deg,#2E7D6B,#5DB8A4)", width: `${(step / EXPLORE_STEPS.length) * 100}%`, transition: "width 0.4s ease" }} />
+          <div style={{ height: "100%", background: "linear-gradient(90deg,#2E7D6B,#5DB8A4)", width: String((step / EXPLORE_STEPS.length) * 100) + "%", transition: "width 0.4s ease" }} />
         </div>
         <div style={{ maxWidth: "480px", width: "100%", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "36px" }}>
@@ -2288,7 +2288,7 @@ function CostOfLivingTool({ onClose, cities }) {
         </div>
 
         {/* Summary */}
-        <div style={{ background: diff > 0 ? "#f4433611" : "#4caf5011", border:`1px solid ${diff > 0 ? "#f4433633" : "#4caf5033"}`, padding:"14px 16px", fontSize:"13px", color:"rgba(255,255,255,0.8)", lineHeight:"1.6" }}>
+        <div style={{ background: diff > 0 ? "#f4433611" : "#4caf5011", border:"1px solid " + (diff > 0 ? "#f4433633" : "#4caf5033"), padding:"14px 16px", fontSize:"13px", color:"rgba(255,255,255,0.8)", lineHeight:"1.6" }}>
           {cityBInfo?.name} is <strong style={{ color: diff > 0 ? "#f44336" : "#4caf50" }}>{Math.abs(pct)}% {diff > 0 ? "more" : "less"} expensive</strong> than {cityAInfo?.name} per month (${Math.abs(diff).toLocaleString()} difference). {leftoverB > leftoverA ? `You'd have $${(leftoverB-leftoverA).toLocaleString()} more per month in ${cityBInfo?.name}.` : `You'd have $${(leftoverA-leftoverB).toLocaleString()} less per month in ${cityBInfo?.name}.`}
         </div>
       </div>
@@ -2386,8 +2386,8 @@ function ApartmentsTab({ apartments, stats, neighborhood, city }) {
         )}
         {filtered.map((apt, i) => (
           <div key={i} style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px" }}
-            onMouseEnter={e => e.currentTarget.style.transform='translateX(3px)'}
-            onMouseLeave={e => e.currentTarget.style.transform='none'}
+            onMouseEnter={e => e.currentTarget.style.transform="translateX(3px)"}
+            onMouseLeave={e => e.currentTarget.style.transform="none"}
             style={{ background:city.card, border:`1px solid ${city.cardBorder}`, borderLeft:`3px solid ${tierColor[apt.tier]||city.accent}`, padding:"16px 18px", transition:"transform 0.15s" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"8px", marginBottom:"6px" }}>
               <div>
@@ -2562,7 +2562,7 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
                   ? <div>
                       <div style={{ fontSize:"18px", fontFamily:city.displayFont, color:safetyColor }}>{s.v}</div>
                       <div style={{ width:"52px", height:"3px", background:city.cardBorder, borderRadius:"2px", marginTop:"3px" }}>
-                        <div style={{ height:"100%", width:`${((s.v||0)/s.max)*100}%`, background:safetyColor, borderRadius:"2px" }} />
+                        <div style={{ height:"100%", width:String(((s.v||0)/s.max)*100) + "%", background:safetyColor, borderRadius:"2px" }} />
                       </div>
                     </div>
                   : <div style={{ fontSize:"16px", fontFamily:city.displayFont, color:city.accentLight }}>{s.v}</div>
@@ -2580,7 +2580,7 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
           <div style={{ fontSize:"28px" }}>🔍</div>
           <div style={{ fontSize:"13px", color:city.textMuted, fontStyle:"italic" }}>Building your guide for {neighborhood.name}…</div>
           <style>{`@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}`}</style>
-          <div style={{ display:"flex", gap:"6px" }}>{[0,1,2].map(i => <div key={i} style={{ width:"6px", height:"6px", borderRadius:"50%", background:city.accent, animation:`pulse 1.2s ease-in-out ${i*0.2}s infinite` }} />)}</div>
+          <div style={{ display:"flex", gap:"6px" }}>{[0,1,2].map(i => <div key={i} style={{ width:"6px", height:"6px", borderRadius:"50%", background:city.accent, animationName:"pulse", animationDuration:"1.2s", animationTimingFunction:"ease-in-out", animationDelay:(i*0.2)+"s", animationIterationCount:"infinite" }} />)}</div>
         </div>
       )}
 
@@ -2638,8 +2638,8 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
                           else { setExpandedItem(key); setSelectedPlace(item); window.scrollTo({top:0,behavior:"smooth"}); }
                         }}
                         style={{ background:isExpanded?`${city.accent}11`:city.card, border:`1px solid ${isExpanded?city.accent+"66":item.must?city.accent+"55":city.cardBorder}`, borderLeft:`3px solid ${isExpanded?city.accent:item.must?city.accent:city.cardBorder}`, transition:"all 0.2s", position:"relative", overflow:"hidden", cursor:"pointer" }}
-                        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.transform='translateX(3px)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform='none'; }}
+                        onMouseEnter={e => { if(!isExpanded) e.currentTarget.style.transform="translateX(3px)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform="none"; }}
                       >
                         <PlacePhoto
                           placeName={item.name}
@@ -2760,7 +2760,7 @@ const VENDOR_SUGGESTIONS = {
 };
 
 function RelocationDashboard({ onBack, cities }) {
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState("timeline");
   const [moveDate, setMoveDate] = useLocalStorage("relo_moveDate", "");
   const [moveCity, setMoveCity] = useLocalStorage("relo_moveCity", "");
   const [checklist, setChecklist] = useLocalStorage("relo_checklist", DEFAULT_CHECKLIST);
@@ -2898,23 +2898,6 @@ function RelocationDashboard({ onBack, cities }) {
     return acc;
   }, {});
 
-  const vendorsBooked = vendors.filter(v => v.status === "Confirmed" || v.status === "Booked").length;
-  const vendorTypesForSuggestions = VENDOR_TYPES.filter(t => t !== "Custom");
-  const vendorsComparing = vendors.filter(v => v.status === "Comparing" || v.status === "Quoted").length;
-  const nextTasks = checklist.filter(c => !c.done).slice(0, 3);
-  const upcomingMilestones = milestones.filter(m => !m.done).slice(0, 3);
-
-  const W = ({ children, span=1, onClick, accent="#5b8db8" }) => (
-    <div onClick={onClick}
-      style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid "+accent, padding:"20px", gridColumn:"span "+span, cursor: onClick?"pointer":"default", transition:"all 0.2s", position:"relative" }}
-      onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor=accent; e.currentTarget.style.background='#111320'; }}}
-      onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor='#1e2030'; e.currentTarget.style.background='#0d0f1a'; }}}>
-      {children}
-    </div>
-  );
-  const WLabel = ({children}) => <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>{children}</div>;
-  const WVal = ({children, color="#fff", size=28}) => <div style={{ fontSize:size+"px", fontFamily:"Georgia,serif", color, lineHeight:1.1 }}>{children}</div>;
-
   return (
     <div style={{ minHeight:"100vh", background:"#080810", color:"#fff", fontFamily:"Georgia,serif" }}>
       <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"32px 24px 80px" }}>
@@ -2922,13 +2905,20 @@ function RelocationDashboard({ onBack, cities }) {
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"28px", flexWrap:"wrap", gap:"12px" }}>
           <div>
-            <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", padding:"0 0 10px 0", display:"flex", alignItems:"center", gap:"6px" }}>← Back to Explore</button>
+            <button onClick={onBack} style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.4)", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", padding:"0 0 10px 0" }}>
+              Back to Explore
+            </button>
             <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>My Relocation</div>
-            <div style={{ fontSize:"32px", color:"#fff" }}>{moveCity ? "Moving to "+moveCity : "Relocation Planner"}</div>
+            <div style={{ fontSize:"32px", color:"#fff" }}>{moveCity ? "Moving to " + moveCity : "Relocation Planner"}</div>
+            {daysUntilMove !== null && (
+              <div style={{ fontSize:"13px", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", marginTop:"6px" }}>
+                {daysUntilMove <= 0 ? "Move day is here!" : daysUntilMove + " days until move"}
+              </div>
+            )}
           </div>
-          <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+          <div style={{ display:"flex", gap:"10px" }}>
             <select value={moveCity} onChange={e => setMoveCity(e.target.value)}
-              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity?"#fff":"rgba(255,255,255,0.4)", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
+              style={{ background:"#111", border:"1px solid #2a2a3a", color: moveCity ? "#fff" : "rgba(255,255,255,0.4)", padding:"9px 12px", fontFamily:"Georgia,serif", fontSize:"12px", cursor:"pointer" }}>
               <option value="">Select city...</option>
               {cities.map(c => <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>)}
             </select>
@@ -2937,69 +2927,68 @@ function RelocationDashboard({ onBack, cities }) {
           </div>
         </div>
 
-        {/* ── Widget Grid or Detail View ── */}
+        {/* Widget Grid or Detail View */}
         {!activeTab ? (
-          /* OVERVIEW GRID */
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"16px" }}>
 
-            {/* Countdown Widget */}
-            <W span={1} accent="#5b8db8">
-              <WLabel>Move Countdown</WLabel>
+            {/* Countdown */}
+            <div style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #5b8db8", padding:"20px" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Move Countdown</div>
               {daysUntilMove !== null ? (
-                <>
-                  <WVal color={daysUntilMove<=7?"#f44336":daysUntilMove<=30?"#ff9800":"#4caf50"} size={42}>{daysUntilMove <= 0 ? "🎉" : daysUntilMove}</WVal>
+                <div>
+                  <div style={{ fontSize:"42px", fontFamily:"Georgia,serif", color: daysUntilMove <= 7 ? "#f44336" : daysUntilMove <= 30 ? "#ff9800" : "#4caf50", lineHeight:1.1 }}>
+                    {daysUntilMove <= 0 ? "Now!" : daysUntilMove}
+                  </div>
                   <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.4)", marginTop:"6px" }}>{daysUntilMove <= 0 ? "Move day!" : "days to go"}</div>
-                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"4px" }}>{new Date(moveDate).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-                </>
-              ) : <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Set your move date →</div>}
-            </W>
+                </div>
+              ) : <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Set your move date above</div>}
+            </div>
 
-            {/* Checklist Widget */}
-            <W span={1} accent="#4caf50" onClick={() => setActiveTab("checklist")}>
-              <WLabel>Checklist Progress</WLabel>
-              <WVal color="#4caf50">{checkDone}<span style={{ fontSize:"16px", color:"rgba(255,255,255,0.3)" }}>/{checklist.length}</span></WVal>
+            {/* Checklist */}
+            <div onClick={() => setActiveTab("checklist")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #4caf50", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Checklist</div>
+              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#4caf50", lineHeight:1.1 }}>{checkDone}/{checklist.length}</div>
               <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
-                <div style={{ height:"100%", width:(checklist.length>0?((checkDone/checklist.length)*100).toFixed(1):0)+"%", background:"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+                <div style={{ height:"100%", width: checklist.length > 0 ? Math.round((checkDone/checklist.length)*100) + "%" : "0%", background:"#4caf50", borderRadius:"3px" }} />
               </div>
-              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>{checklist.length - checkDone} tasks remaining · tap to view</div>
-            </W>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>{checklist.length - checkDone} remaining</div>
+            </div>
 
-            {/* Budget Widget */}
-            <W span={1} accent="#ff9800" onClick={() => setActiveTab("budget")}>
-              <WLabel>Budget</WLabel>
-              <WVal color={remaining>=0?"#4caf50":"#f44336"}>${Math.abs(remaining).toLocaleString()}</WVal>
-              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)", marginTop:"4px" }}>{remaining>=0?"remaining":"over budget"}</div>
+            {/* Budget */}
+            <div onClick={() => setActiveTab("budget")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #ff9800", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Budget</div>
+              <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color: remaining >= 0 ? "#4caf50" : "#f44336", lineHeight:1.1 }}>${Math.abs(remaining).toLocaleString()}</div>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)", marginTop:"4px" }}>{remaining >= 0 ? "remaining" : "over budget"}</div>
               <div style={{ marginTop:"10px", height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
-                <div style={{ height:"100%", width:(totalBudget>0?Math.min(100,(totalSpent/totalBudget)*100).toFixed(1):0)+"%", background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"3px", transition:"width 0.4s" }} />
+                <div style={{ height:"100%", width: totalBudget > 0 ? Math.min(100, Math.round((totalSpent/totalBudget)*100)) + "%" : "0%", background: remaining < 0 ? "#f44336" : "#ff9800", borderRadius:"3px" }} />
               </div>
-              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>${totalSpent.toLocaleString()} spent of ${totalBudget.toLocaleString()}</div>
-            </W>
+              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>${totalSpent.toLocaleString()} of ${totalBudget.toLocaleString()}</div>
+            </div>
 
-            {/* Vendor Status Widget */}
-            <W span={1} accent="#9c27b0" onClick={() => setActiveTab("vendors")}>
-              <WLabel>Vendors</WLabel>
+            {/* Vendors */}
+            <div onClick={() => setActiveTab("vendors")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #9c27b0", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Vendors</div>
               <div style={{ display:"flex", gap:"20px", marginTop:"4px" }}>
                 <div>
-                  <WVal color="#4caf50" size={28}>{vendorsBooked}</WVal>
+                  <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#4caf50", lineHeight:1.1 }}>{vendorsBooked}</div>
                   <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Booked</div>
                 </div>
                 <div>
-                  <WVal color="#ff9800" size={28}>{vendorsComparing}</WVal>
+                  <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"#ff9800", lineHeight:1.1 }}>{vendorsComparing}</div>
                   <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Comparing</div>
                 </div>
                 <div>
-                  <WVal color="rgba(255,255,255,0.4)" size={28}>{vendors.length}</WVal>
+                  <div style={{ fontSize:"28px", fontFamily:"Georgia,serif", color:"rgba(255,255,255,0.4)", lineHeight:1.1 }}>{vendors.length}</div>
                   <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"3px" }}>Total</div>
                 </div>
               </div>
-              <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"10px" }}>tap to manage vendors</div>
-            </W>
+            </div>
 
-            {/* Next Tasks Widget */}
-            <W span={1} accent="#5b8db8" onClick={() => setActiveTab("checklist")}>
-              <WLabel>Next Tasks</WLabel>
+            {/* Next Tasks */}
+            <div onClick={() => setActiveTab("checklist")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #5b8db8", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Next Tasks</div>
               {nextTasks.length === 0 ? (
-                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>🎉 All tasks complete!</div>
+                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>All tasks complete!</div>
               ) : (
                 <div style={{ display:"grid", gap:"7px", marginTop:"4px" }}>
                   {nextTasks.map(t => (
@@ -3011,15 +3000,15 @@ function RelocationDashboard({ onBack, cities }) {
                   ))}
                 </div>
               )}
-            </W>
+            </div>
 
-            {/* Timeline Widget */}
-            <W span={1} accent="#c49a2a" onClick={() => setActiveTab("timeline")}>
-              <WLabel>Upcoming Milestones</WLabel>
+            {/* Timeline */}
+            <div onClick={() => setActiveTab("timeline")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #c49a2a", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Upcoming Milestones</div>
               {!moveDate ? (
                 <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>Set move date to see milestones</div>
               ) : upcomingMilestones.length === 0 ? (
-                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>🎉 All milestones complete!</div>
+                <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.3)", marginTop:"8px" }}>All milestones complete!</div>
               ) : (
                 <div style={{ display:"grid", gap:"8px", marginTop:"4px" }}>
                   {upcomingMilestones.map((m,i) => (
@@ -3033,75 +3022,68 @@ function RelocationDashboard({ onBack, cities }) {
                   ))}
                 </div>
               )}
-            </W>
+            </div>
 
-            {/* Saved Neighborhoods Widget */}
-            <W span={1} accent="#2e7d6b" onClick={() => setActiveTab("neighborhoods")}>
-              <WLabel>Saved Neighborhoods</WLabel>
-              <WVal color="#5db8a4" size={32}>{savedNeighborhoods.length}</WVal>
+            {/* Saved Neighborhoods */}
+            <div onClick={() => setActiveTab("neighborhoods")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #2e7d6b", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Saved Neighborhoods</div>
+              <div style={{ fontSize:"32px", fontFamily:"Georgia,serif", color:"#5db8a4", lineHeight:1.1 }}>{savedNeighborhoods.length}</div>
               {savedNeighborhoods.length > 0 ? (
                 <div style={{ marginTop:"8px", display:"flex", gap:"6px", flexWrap:"wrap" }}>
                   {savedNeighborhoods.slice(0,3).map(n => (
-                    <span key={n.name} style={{ fontSize:"10px", padding:"2px 8px", background:"#2e7d6b22", border:"1px solid #2e7d6b44", color:"#5db8a4" }}>{n.name}</span>
+                    <span key={n.name} style={{ fontSize:"10px", padding:"2px 8px", background:"rgba(46,125,107,0.15)", border:"1px solid rgba(46,125,107,0.3)", color:"#5db8a4" }}>{n.name}</span>
                   ))}
-                  {savedNeighborhoods.length > 3 && <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.3)" }}>+{savedNeighborhoods.length-3} more</span>}
                 </div>
               ) : <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>Browse cities to save neighborhoods</div>}
-            </W>
+            </div>
 
-            {/* Saved Apartments Widget */}
-            <W span={1} accent="#d95f2b" onClick={() => setActiveTab("neighborhoods")}>
-              <WLabel>Saved Apartments</WLabel>
-              <WVal color="#f4a16a" size={32}>{savedApartments.length}</WVal>
+            {/* Saved Apartments */}
+            <div onClick={() => setActiveTab("neighborhoods")} style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #d95f2b", padding:"20px", cursor:"pointer" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"8px" }}>Saved Apartments</div>
+              <div style={{ fontSize:"32px", fontFamily:"Georgia,serif", color:"#f4a16a", lineHeight:1.1 }}>{savedApartments.length}</div>
               {savedApartments.length > 0 ? (
                 <div style={{ marginTop:"8px", display:"grid", gap:"4px" }}>
                   {savedApartments.slice(0,2).map(a => (
                     <div key={a.id} style={{ fontSize:"11px", color:"rgba(255,255,255,0.5)" }}>{a.name} · {a.rent}</div>
                   ))}
                 </div>
-              ) : <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>Browse apartments tab to save listings</div>}
-            </W>
+              ) : <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.3)", marginTop:"6px" }}>Browse apartments to save listings</div>}
+            </div>
 
-            {/* Quick Actions Widget */}
-            <W span={1} accent="#5b8db8">
-              <WLabel>Quick Actions</WLabel>
-              <div style={{ display:"grid", gap:"8px", marginTop:"4px" }}>
+            {/* Quick Actions */}
+            <div style={{ background:"#0d0f1a", border:"1px solid #1e2030", borderTop:"2px solid #5b8db8", padding:"20px" }}>
+              <div style={{ fontSize:"9px", letterSpacing:"2.5px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"12px" }}>Quick Actions</div>
+              <div style={{ display:"grid", gap:"8px" }}>
                 {[
-                  { label:"📋 Full Checklist", tab:"checklist" },
-                  { label:"💰 Budget & Expenses", tab:"budget" },
-                  { label:"🏢 Manage Vendors", tab:"vendors" },
-                  { label:"🗓 Move Timeline", tab:"timeline" },
+                  { label:"Full Checklist", tab:"checklist" },
+                  { label:"Budget & Expenses", tab:"budget" },
+                  { label:"Manage Vendors", tab:"vendors" },
+                  { label:"Move Timeline", tab:"timeline" },
                 ].map(a => (
                   <button key={a.tab} onClick={() => setActiveTab(a.tab)}
-                    style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", padding:"7px 12px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", textAlign:"left", transition:"all 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor='#5b8db8'; e.currentTarget.style.color='#fff'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='#2a2a3a'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
+                    style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", padding:"7px 12px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", textAlign:"left" }}>
                     {a.label}
                   </button>
                 ))}
               </div>
-            </W>
+            </div>
 
           </div>
         ) : (
-          /* DETAIL VIEW */
           <div>
             <button onClick={() => setActiveTab(null)}
-              style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", marginBottom:"20px", display:"flex", alignItems:"center", gap:"8px" }}>
-              ← Back to Overview
+              style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", marginBottom:"20px" }}>
+              Back to Overview
             </button>
-
-            {/* Tabs for detail navigation */}
             <div style={{ display:"flex", gap:"0", overflowX:"auto", borderBottom:"1px solid #1a1a2a", marginBottom:"24px" }}>
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setActiveTab(t.id)}
-                  style={{ background:"transparent", border:"none", borderBottom: activeTab===t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab===t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"12px 18px", fontSize:"12px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap", transition:"color 0.15s" }}>
+                  style={{ background:"transparent", border:"none", borderBottom: activeTab === t.id ? "2px solid #5b8db8" : "2px solid transparent", color: activeTab === t.id ? "#fff" : "rgba(255,255,255,0.4)", padding:"12px 18px", fontSize:"12px", cursor:"pointer", fontFamily:"Georgia,serif", whiteSpace:"nowrap" }}>
                   {t.label}
                 </button>
               ))}
             </div>
-
-            {/* ── Timeline ── */}
+          {/* ── Timeline ── */}
           {activeTab === "timeline" && (
             <div>
               {!moveDate ? (
@@ -3125,7 +3107,7 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-            {/* ── Checklist ── */}
+          {/* ── Checklist ── */}
           {activeTab === "checklist" && (
             <div>
               <div style={{ display:"flex", gap:"8px", marginBottom:"20px" }}>
@@ -3136,7 +3118,7 @@ function RelocationDashboard({ onBack, cities }) {
               </div>
               <div style={{ marginBottom:"8px", fontSize:"12px", color:"rgba(255,255,255,0.4)" }}>{checkDone} of {checklist.length} completed</div>
               <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px", marginBottom:"20px" }}>
-                <div style={{ height:"100%", width:((checkDone/checklist.length)*100).toFixed(1)+"%", background:"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+                <div style={{ height:"100%", width:((checkDone/checklist.length)*100)+"%", background:"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
               </div>
               {Object.entries(checklistByCategory).map(([cat, items]) => (
                 <div key={cat} style={{ marginBottom:"20px" }}>
@@ -3200,7 +3182,7 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-            {/* ── Budget ── */}
+          {/* ── Budget ── */}
           {activeTab === "budget" && (
             <div>
               {/* Step 1: Pick categories */}
@@ -3242,7 +3224,7 @@ function RelocationDashboard({ onBack, cities }) {
                           {cat.limit > 0 && (
                             <div style={{ flex:1, minWidth:"120px" }}>
                               <div style={{ height:"4px", background:"#1a1a2a", borderRadius:"2px" }}>
-                                <div style={{ height:"100%", width:pct+"%", background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
+                                <div style={{ height:"100%", width:(pct)+"%", background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
                               </div>
                               <div style={{ fontSize:"10px", color: overBudget?"#f44336":"rgba(255,255,255,0.35)", marginTop:"2px" }}>
                                 ${spent.toLocaleString()} / ${cat.limit.toLocaleString()}
@@ -3270,7 +3252,7 @@ function RelocationDashboard({ onBack, cities }) {
                       <span style={{ color: remaining >= 0 ? "#4caf50" : "#f44336" }}>${Math.abs(remaining).toLocaleString()} {remaining >= 0 ? "remaining" : "over budget"}</span>
                     </div>
                     <div style={{ height:"8px", background:"#1a1a2a", borderRadius:"4px" }}>
-                      <div style={{ height:"100%", width:Math.min(100,(totalSpent/totalBudget)*100).toFixed(1)+"%", background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"4px", transition:"width 0.3s" }} />
+                      <div style={{ height:"100%", width:(Math.min(100,(totalSpent/totalBudget)*100))+"%", background: remaining<0?"#f44336":remaining<totalBudget*0.2?"#ff9800":"#4caf50", borderRadius:"4px", transition:"width 0.3s" }} />
                     </div>
                   </div>
                   {/* Per-category bars */}
@@ -3283,7 +3265,7 @@ function RelocationDashboard({ onBack, cities }) {
                         <div key={cat.id}>
                           <div style={{ display:"flex", justifyContent:"space-between", fontSize:"11px", marginBottom:"3px" }}>
                             <span style={{ color:"rgba(255,255,255,0.6)" }}>{cat.icon} {cat.label}</span>
-                            <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?" / $"+cat.limit.toLocaleString():""}</span>
+                            <span style={{ color:"rgba(255,255,255,0.4)" }}>${spent.toLocaleString()}{cat.limit>0?" / $"+(cat.limit.toLocaleString()):""}</span>
                           </div>
                           <div style={{ height:"5px", background:"#1a1a2a", borderRadius:"3px" }}>
                             <div style={{ height:"100%", width:(cat.limit>0?pct:0)+"%", background:barColor, borderRadius:"3px", transition:"width 0.3s" }} />
@@ -3309,7 +3291,7 @@ function RelocationDashboard({ onBack, cities }) {
                   </select>
                   <input type="number" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount:e.target.value})} placeholder="Amount $"
                     style={{ flex:"1 1 80px", background:"#0a0a14", border:"1px solid #2a2a3a", color:"#fff", padding:"7px 10px", fontFamily:"Georgia,serif", fontSize:"12px" }} />
-                  <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>Add</button>
+                  <button onClick={addExpense} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"7px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>+ Add</button>
                 </div>
               </div>
 
@@ -3334,14 +3316,14 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
 
-            {/* ── Vendors ── */}
+          {/* ── Vendors ── */}
           {activeTab === "vendors" && (
             <div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
                 <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.5)" }}>Track quotes, contacts, and status for all your vendors</div>
                 <button onClick={() => setShowAddVendor(!showAddVendor)}
                   style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"8px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"11px", letterSpacing:"1px", whiteSpace:"nowrap" }}>
-                  Add Vendor
+                  + Add Vendor
                 </button>
               </div>
 
@@ -3390,7 +3372,7 @@ function RelocationDashboard({ onBack, cities }) {
                         </div>
                         <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
                           <select value={v.status} onChange={e => updateVendorStatus(v.id, e.target.value)}
-                            style={{ background:"#0a0a14", border:"1px solid "+(statusColor[v.status])+"44", color:statusColor[v.status]||"#fff", padding:"4px 8px", fontFamily:"Georgia,serif", fontSize:"11px", cursor:"pointer" }}>
+                            style={{ background:"#0a0a14", border:"1px solid "+(statusColor[v.status]||"#2a2a3a")+"44", color:statusColor[v.status]||"#fff", padding:"4px 8px", fontFamily:"Georgia,serif", fontSize:"11px", cursor:"pointer" }}>
                             {VENDOR_STATUSES.map(s => <option key={s}>{s}</option>)}
                           </select>
                           <button onClick={() => removeVendor(v.id)} style={{ background:"transparent", border:"1px solid #3a3a4a", color:"rgba(255,255,255,0.4)", width:"24px", height:"24px", borderRadius:"50%", cursor:"pointer", fontSize:"12px" }}>×</button>
@@ -3409,7 +3391,7 @@ function RelocationDashboard({ onBack, cities }) {
               {/* Vendor Suggestions */}
               <div style={{ marginTop:"32px" }}>
                 <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"20px" }}>Suggested Services</div>
-                {vendorTypesForSuggestions.map(type => {
+                {VENDOR_TYPES.filter(t => t !== "Custom").map(type => {
                   const suggestions = VENDOR_SUGGESTIONS[type] || [];
                   if (!suggestions.length) return null;
                   return (
@@ -3430,17 +3412,17 @@ function RelocationDashboard({ onBack, cities }) {
                             <div style={{ display:"flex", gap:"8px", alignItems:"center", flexShrink:0 }}>
                               <a href={s.url} target="_blank" rel="noopener noreferrer"
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.6)", textDecoration:"none", letterSpacing:"1px", transition:"all 0.15s" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor='#5b8db8'; e.currentTarget.style.color='#5b8db8'; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor='#2a2a3a'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
-                                Visit &#8594;
+                                onMouseEnter={e => { e.currentTarget.style.borderColor="#5b8db8"; e.currentTarget.style.color="#5b8db8"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor="#2a2a3a"; e.currentTarget.style.color="rgba(255,255,255,0.6)"; }}>
+                                Visit →
                               </a>
                               <button onClick={() => {
                                 setVendors([...vendors, { id:Date.now(), name:s.name, type, quote:"", contact:"", notes:s.best, status:"Comparing" }]);
                               }}
                                 style={{ fontSize:"11px", padding:"6px 14px", background:"#5b8db822", border:"1px solid #5b8db855", color:"#5b8db8", cursor:"pointer", fontFamily:"Georgia,serif", letterSpacing:"1px", transition:"all 0.15s" }}
-                                onMouseEnter={e => e.currentTarget.style.background='#5b8db844'}
-                                onMouseLeave={e => e.currentTarget.style.background='#5b8db822'}>
-                                Add
+                                onMouseEnter={e => e.currentTarget.style.background="#5b8db844"}
+                                onMouseLeave={e => e.currentTarget.style.background="#5b8db822"}>
+                                + Add
                               </button>
                             </div>
                           </div>
@@ -3453,6 +3435,12 @@ function RelocationDashboard({ onBack, cities }) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -3634,14 +3622,14 @@ function NavBar({ onShowDashboard, onShowCoL }) {
         <div style={{ display:"flex", gap:"6px", alignItems:"center" }}>
           <button onClick={onShowDashboard}
             style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.6)", padding:"6px 14px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color='#fff'}
-            onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.6)'}>
+            onMouseEnter={e => e.currentTarget.style.color="#fff"}
+            onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.6)"}>
             📋 My Move
           </button>
           <button onClick={onShowCoL}
             style={{ background:"transparent", border:"none", color:"rgba(255,255,255,0.6)", padding:"6px 14px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"color 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.color='#fff'}
-            onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.6)'}>
+            onMouseEnter={e => e.currentTarget.style.color="#fff"}
+            onMouseLeave={e => e.currentTarget.style.color="rgba(255,255,255,0.6)"}>
             💰 Cost of Living
           </button>
         </div>
@@ -3652,14 +3640,14 @@ function NavBar({ onShowDashboard, onShowCoL }) {
             <div style={{ display:"flex", gap:"8px" }}>
               <button onClick={() => setShowAuth(true)}
                 style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.2)", color:"rgba(255,255,255,0.8)", padding:"6px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"all 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.5)'; e.currentTarget.style.color='#fff'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.2)'; e.currentTarget.style.color='rgba(255,255,255,0.8)'; }}>
+                onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.5)"; e.currentTarget.style.color="#fff"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.2)"; e.currentTarget.style.color="rgba(255,255,255,0.8)"; }}>
                 Log in
               </button>
               <button onClick={() => setShowAuth(true)}
                 style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"6px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"12px", letterSpacing:"1px", transition:"opacity 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.opacity='0.85'}
-                onMouseLeave={e => e.currentTarget.style.opacity='1'}>
+                onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
+                onMouseLeave={e => e.currentTarget.style.opacity="1"}>
                 Sign up
               </button>
             </div>
@@ -3679,20 +3667,20 @@ function NavBar({ onShowDashboard, onShowCoL }) {
               </div>
               <button onClick={() => { setShowDropdown(false); onShowDashboard(); }}
                 style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
                 📋 My Move Dashboard
               </button>
               <button onClick={() => { setShowDropdown(false); onShowCoL(); }}
                 style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
                 💰 Cost of Living
               </button>
               <button onClick={handleLogout}
                 style={{ width:"100%", background:"transparent", border:"none", color:"rgba(255,255,255,0.5)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
-                onMouseEnter={e => e.currentTarget.style.background='#1a1a2a'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
                 ↩ Log out
               </button>
             </div>
