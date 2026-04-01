@@ -2315,7 +2315,7 @@ function ApartmentsTab({ apartments, stats, neighborhood, city }) {
   const tierLabel = { budget: "Budget", mid: "Mid-Range", luxury: "Luxury" };
 
   const zillow = `https://www.zillow.com/homes/${encodeURIComponent(neighborhood.name+", "+city.name)}_rb/`;
-  const aptsCom = `https://www.apartments.com/${neighborhood.name.toLowerCase().replace(/\s+/g,"-")}-${city.name.toLowerCase()}/`;
+  const aptsCom = "https://www.apartments.com/" + neighborhood.name.toLowerCase().replace(/\s+/g, "-") + "-" + city.name.toLowerCase() + "/";
 
   return (
     <div>
@@ -2859,7 +2859,7 @@ function RelocationDashboard({ onBack, cities }) {
       ...(budget.expenses||[]).map(e => `${e.category} — ${e.label}: $${e.amount.toLocaleString()}`),
       "",
       "=== VENDORS ===",
-      ...vendors.map(v => `${v.type}: ${v.name} | ${v.status} | Quote: ${v.quote || "N/A"} | ${v.contact || ""}`)
+      ...vendors.map(v => v.type + ": " + v.name + " | " + v.status + " | Quote: " + (v.quote || "N/A") + " | " + (v.contact || ""))
     ].join("\n");
     const blob = new Blob([lines], { type:"text/plain" });
     const url = URL.createObjectURL(blob);
