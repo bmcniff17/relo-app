@@ -1803,7 +1803,7 @@ function NeighborhoodGoogleMap({ neighborhood, city, selectedPlace }) {
         },
       });
       const iw = new window.google.maps.InfoWindow({
-        content: `<div style="font-family:sans-serif;padding:4px;color:#111"><strong>${selectedPlace.name}</strong></div>`,
+        content: "<div style=\"font-family:sans-serif;padding:4px;color:#111\"><strong>" + selectedPlace.name + "</strong></div>",
       });
       iw.open(mapInstance.current, selectedMarkerRef.current);
     });
@@ -2463,9 +2463,9 @@ Return this exact structure:
   "gyms": [{"name":"...","desc":"1 sentence"}],
   "landmarks": [{"name":"...","desc":"1 sentence"}],
   "parks": [{"name":"...","desc":"1 sentence"}],
-  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}],
+  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX per mo","features":["feature1","feature2"],"tier":"budget"}],
   "jobs": {
-    "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high/medium/low"}],
+    "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high or medium or low"}],
     "topEmployers": [{"name":"...","type":"...","desc":"1 sentence"}],
     "jobMarketSummary": "2 sentence overview of job market",
     "avgHouseholdIncome": "$XX,XXX",
@@ -2473,21 +2473,21 @@ Return this exact structure:
   },
   "schools": {
     "summary": "2 sentence overview of schools in this neighborhood",
-    "public": [{"name":"...","grades":"K-5 / 6-8 / 9-12","rating":8,"desc":"1 sentence"}],
+    "public": [{"name":"...","grades":"K-5, 6-8, 9-12","rating":8,"desc":"1 sentence"}],
     "private": [{"name":"...","grades":"...","desc":"1 sentence"}],
     "universities": [{"name":"...","desc":"1 sentence"}]
   },
   "community": {
     "summary": "1-2 sentences about community vibe",
-    "subreddit": "r/cityname",
+    "subreddit": "r-cityname",
     "facebook": ["Group Name 1","Group Name 2"],
     "discord": ["Server Name 1"],
     "nextdoor": true,
-    "events": [{"name":"...","freq":"weekly/monthly/annual","desc":"1 sentence"}]
+    "events": [{"name":"...","freq":"weekly or monthly or annual","desc":"1 sentence"}]
   }
 }
 
-Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 6-8 top industries and 5-6 major employers. For schools include real public, private, and universities near ${neighborhood.name}. For community include real subreddit, Facebook groups, and Discord servers for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
+Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget, mid, luxury). For jobs include 6-8 top industries and 5-6 major employers. For schools include real public, private, and universities near ${neighborhood.name}. For community include real subreddit, Facebook groups, and Discord servers for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
 
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -2848,7 +2848,7 @@ function RelocationDashboard({ onBack, cities }) {
       "=== BUDGET CATEGORIES ===",
       ...activeCategories.map(c => {
         const spent = (budget.expenses||[]).filter(e => e.category === c.label).reduce((a,b) => a+b.amount, 0);
-        return `${c.icon} ${c.label}: $${spent.toLocaleString()} / $${c.limit.toLocaleString()} limit`;
+        return c.icon + " " + c.label + ": $" + spent.toLocaleString() + " / $" + c.limit.toLocaleString() + " limit";
       }),
       "",
       `Total Spent: $${totalSpent.toLocaleString()}`,
@@ -3227,7 +3227,7 @@ function RelocationDashboard({ onBack, cities }) {
                                 <div style={{ height:"100%", width:(pct)+"%", background: overBudget?"#f44336":pct>80?"#ff9800":"#4caf50", borderRadius:"2px", transition:"width 0.3s" }} />
                               </div>
                               <div style={{ fontSize:"10px", color: overBudget?"#f44336":"rgba(255,255,255,0.35)", marginTop:"2px" }}>
-                                ${spent.toLocaleString()} / ${cat.limit.toLocaleString()}
+                                {"$"}{spent.toLocaleString()}{" / $"}{cat.limit.toLocaleString()}
                               </div>
                             </div>
                           )}
