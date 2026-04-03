@@ -10,127 +10,144 @@ const _RELO_VERSION = "1.0.0";
 
 
 const NeighborhoodMap = (props) => {
-var {city, scored, selectedNeighborhood, onSelectNeighborhood} = props;
-  // Project lat/lng to SVG coords
-  const W = 600, H = 360;
-  const lats = scored.map(n => n.lat), lngs = scored.map(n => n.lng);
-  const minLat = Math.min(...lats) - 0.025;
-  const maxLat = Math.max(...lats) + 0.025;
-  const minLng = Math.min(...lngs) - 0.035;
-  const maxLng = Math.max(...lngs) + 0.035;
+  var {city, scored, selectedNeighborhood, onSelectNeighborhood} = props;
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const markersRef = useRef([]);
+  const [mapError, setMapError] = useState(false);
 
-  const project = (lat, lng) => {
-    const x = (lng - minLng) * (W - 80) / (maxLng - minLng) + 40;
-    const y = (maxLat - lat) * (H - 80) / (maxLat - minLat) + 40;
-    return [x, y];
-  };
+  const maxScore = scored.length ? Math.max(...scored.map(n => n.score)) : 0;
+  const minScore = scored.length ? Math.min(...scored.map(n => n.score)) : 0;
 
-  const maxScore = Math.max(...scored.map(n => n.score));
-  const minScore = Math.min(...scored.map(n => n.score));
+  // Init map when city changes
+  useEffect(() => {
+    if (!scored.length) return;
+    let cancelled = false;
+    // Clean up previous markers
+    markersRef.current.forEach(m => m.marker.setMap(null));
+    markersRef.current = [];
 
-  // Generate pseudo-street grid lines for visual richness
-  const gridLines = [];
-  for (let i = 0; i <= 8; i++) {
-    const y = 40 + (i / 8) * (H - 80);
-    gridLines.push(<line key={`h${i}`} x1={40} y1={y} x2={W - 40} y2={y} stroke={city.accent} strokeWidth="0.4" opacity="0.08" />);
-  }
-  for (let i = 0; i <= 12; i++) {
-    const x = 40 + (i / 12) * (W - 80);
-    gridLines.push(<line key={`v${i}`} x1={x} y1={40} x2={x} y2={H - 40} stroke={city.accent} strokeWidth="0.4" opacity="0.08" />);
-  }
+    loadGoogleMaps()
+      .then(() => {
+        if (cancelled || !mapRef.current) return;
+        const center = city.mapCenter
+          ? { lat: city.mapCenter[0], lng: city.mapCenter[1] }
+          : { lat: scored[0].lat, lng: scored[0].lng };
 
-  // Diagonal accent streets
-  const diagonals = [];
-  for (let i = 0; i < 3; i++) {
-    const x0 = 40 + (i * 180);
-    diagonals.push(<line key={`d${i}`} x1={x0} y1={40} x2={x0 + 120} y2={H - 40} stroke={city.accent} strokeWidth="0.6" opacity="0.06" />);
+        mapInstance.current = new window.google.maps.Map(mapRef.current, {
+          center,
+          zoom: 12,
+          styles: [
+            { elementType:"geometry", stylers:[{ color:"#0d1117" }] },
+            { elementType:"labels.text.fill", stylers:[{ color:"#9e9e9e" }] },
+            { elementType:"labels.text.stroke", stylers:[{ color:"#1a1a2e" }] },
+            { featureType:"road", elementType:"geometry", stylers:[{ color:"#1c1c2e" }] },
+            { featureType:"road", elementType:"geometry.stroke", stylers:[{ color:"#212121" }] },
+            { featureType:"road.highway", elementType:"geometry", stylers:[{ color:"#2c2c3e" }] },
+            { featureType:"water", elementType:"geometry", stylers:[{ color:"#050810" }] },
+            { featureType:"poi", elementType:"labels", stylers:[{ visibility:"off" }] },
+            { featureType:"transit", stylers:[{ visibility:"off" }] },
+          ],
+          disableDefaultUI: true,
+          zoomControl: true,
+          zoomControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
+        });
+
+        // Fit bounds to all neighborhoods
+        const bounds = new window.google.maps.LatLngBounds();
+        scored.forEach(n => bounds.extend({ lat: n.lat, lng: n.lng }));
+        mapInstance.current.fitBounds(bounds, 60);
+
+        // Place markers
+        markersRef.current = scored.map((n, i) => {
+          const isTop = n.score === maxScore;
+          const isLeast = n.score === minScore && minScore < maxScore;
+          const color = isTop ? city.accent : isLeast ? "#4a4a6a" : city.accentLight;
+          const scale = isTop ? 22 : isLeast ? 14 : 18;
+
+          const marker = new window.google.maps.Marker({
+            position: { lat: n.lat, lng: n.lng },
+            map: mapInstance.current,
+            title: n.name,
+            label: { text: String(i + 1), color: "#fff", fontSize: isTop ? "11px" : "9px", fontWeight: "700" },
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale,
+              fillColor: color,
+              fillOpacity: isLeast ? 0.45 : isTop ? 0.9 : 0.75,
+              strokeColor: "#fff",
+              strokeWeight: isTop ? 2 : 1,
+              strokeOpacity: isTop ? 0.5 : 0.2,
+            },
+            zIndex: isTop ? 10 : isLeast ? 1 : 5,
+          });
+
+          marker.addListener("click", () => {
+            onSelectNeighborhood(selectedNeighborhood === n.name ? null : n.name);
+          });
+
+          return { marker, name: n.name };
+        });
+      })
+      .catch(() => setMapError(true));
+
+    return () => { cancelled = true; };
+  }, [city.id]);
+
+  // Update marker appearance on selection change
+  useEffect(() => {
+    if (!window.google?.maps || !markersRef.current.length) return;
+    markersRef.current.forEach(({ marker, name }, i) => {
+      const n = scored[i];
+      if (!n) return;
+      const isTop = n.score === maxScore;
+      const isLeast = n.score === minScore && minScore < maxScore;
+      const isSelected = selectedNeighborhood === name;
+      const color = isTop ? city.accent : isLeast ? "#4a4a6a" : city.accentLight;
+      marker.setIcon({
+        path: window.google.maps.SymbolPath.CIRCLE,
+        scale: isSelected ? (isTop ? 26 : 22) : isTop ? 22 : isLeast ? 14 : 18,
+        fillColor: isSelected ? "#fff" : color,
+        fillOpacity: isLeast ? 0.45 : isTop ? 0.9 : 0.75,
+        strokeColor: isSelected ? color : "#fff",
+        strokeWeight: isSelected ? 3 : isTop ? 2 : 1,
+        strokeOpacity: isSelected ? 1 : isTop ? 0.5 : 0.2,
+      });
+      if (isSelected && mapInstance.current) {
+        mapInstance.current.panTo({ lat: n.lat, lng: n.lng });
+      }
+    });
+  }, [selectedNeighborhood]);
+
+  if (mapError) {
+    return (
+      <div style={{ position:"relative", border:`1px solid ${city.cardBorder}`, background:city.bg, height:"360px", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <div style={{ fontSize:"12px", color:city.textMuted, textAlign:"center" }}>Map unavailable</div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ position: "relative", border: `1px solid ${city.cardBorder}`, background: city.bg, overflow: "hidden" }}>
+    <div style={{ position:"relative", border:`1px solid ${city.cardBorder}`, overflow:"hidden" }}>
       {/* Map label */}
-      <div style={{ position: "absolute", top: "10px", left: "12px", fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: city.accentLight, opacity: 0.6, fontFamily: city.bodyFont, zIndex: 2 }}>
+      <div style={{ position:"absolute", top:"10px", left:"12px", fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:city.accentLight, opacity:0.6, fontFamily:city.bodyFont, zIndex:2, pointerEvents:"none" }}>
         {city.name} · Neighborhood Map
       </div>
-
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
-        {/* Background */}
-        <rect x="0" y="0" width={W} height={H} fill={city.bg} />
-        <rect x="40" y="40" width={W - 80} height={H - 80} fill={city.card} opacity="0.6" rx="2" />
-
-        {/* Grid */}
-        {gridLines}
-        {diagonals}
-
-        {/* Water body hint (decorative) */}
-        <ellipse cx={W * 0.85} cy={H * 0.5} rx="50" ry="80" fill={city.accent} opacity="0.04" />
-
-        {/* Connection lines between neighborhoods */}
-        {scored.map((n, i) => {
-          if (i === scored.length - 1) return null;
-          const [x1, y1] = project(n.lat, n.lng);
-          const [x2, y2] = project(scored[i + 1].lat, scored[i + 1].lng);
-          return <line key={`l${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={city.accent} strokeWidth="1" opacity="0.1" strokeDasharray="4 4" />;
-        })}
-
-        {/* Neighborhood pins */}
-        {scored.map((n, i) => {
-          const [x, y] = project(n.lat, n.lng);
-          const isTop = n.score === maxScore;
-          const isLeast = n.score === minScore && minScore < maxScore;
-          const isSelected = selectedNeighborhood === n.name;
-          const color = isTop ? city.accent : isLeast ? "#4a4a6a" : city.accentLight;
-          const pinSize = isTop ? 22 : isLeast ? 14 : 18;
-          const opacity = isLeast ? 0.45 : 1;
-
-          return (
-            <g key={n.name} style={{ cursor: "pointer" }} onClick={() => onSelectNeighborhood(isSelected ? null : n.name)} opacity={opacity}>
-              {/* Pulse ring for top match */}
-              {isTop && (
-                <>
-                  <circle cx={x} cy={y} r={pinSize + 12} fill="none" stroke={color} strokeWidth="1.5" opacity="0.2" />
-                  <circle cx={x} cy={y} r={pinSize + 6} fill="none" stroke={color} strokeWidth="1" opacity="0.3" />
-                </>
-              )}
-              {/* Selection ring */}
-              {isSelected && (
-                <circle cx={x} cy={y} r={pinSize + 8} fill="none" stroke={city.accentLight} strokeWidth="2" opacity="0.8" />
-              )}
-              {/* Pin circle */}
-              <circle cx={x} cy={y} r={pinSize} fill={color} opacity={isTop ? 0.9 : 0.75} />
-              <circle cx={x} cy={y} r={pinSize} fill="none" stroke="#fff" strokeWidth={isTop ? 2 : 1} opacity={isTop ? 0.5 : 0.2} />
-              {/* Rank number */}
-              <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={isTop ? "11" : "9"} fontWeight="700" fontFamily="sans-serif" opacity="0.95">{i + 1}</text>
-              {/* Label */}
-              <text x={x} y={y + pinSize + 13} textAnchor="middle" fill={isTop ? city.accentLight : city.textMuted || "#aaa"} fontSize="9" fontFamily="'Source Serif 4', Georgia, serif" opacity={isLeast ? 0.5 : 0.85}>{n.name.split(" ")[0]}</text>
-            </g>
-          );
-        })}
-      </svg>
-
+      {/* Google Map */}
+      <div ref={mapRef} style={{ width:"100%", height:"360px" }} />
       {/* Legend */}
-      <div style={{ position: "absolute", bottom: "10px", right: "12px", background: `${city.bg}dd`, border: `1px solid ${city.cardBorder}`, padding: "8px 12px", backdropFilter: "blur(4px)" }}>
-        <div style={{ fontSize: "8px", letterSpacing: "2px", textTransform: "uppercase", color: city.textMuted, marginBottom: "6px", fontFamily: city.bodyFont }}>Match Rank</div>
+      <div style={{ position:"absolute", bottom:"10px", right:"12px", background:`${city.bg}dd`, border:`1px solid ${city.cardBorder}`, padding:"8px 12px", backdropFilter:"blur(4px)", zIndex:2 }}>
+        <div style={{ fontSize:"8px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"6px", fontFamily:city.bodyFont }}>Match Rank</div>
         {[
           { color: city.accent, label: "#1 Best match", opacity: 0.9 },
           { color: city.accentLight, label: "Mid matches", opacity: 0.75 },
           { color: "#4a4a6a", label: "Least match", opacity: 0.5 },
         ].map(item => (
-          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "3px" }}>
-            <div style={{ width: "9px", height: "9px", borderRadius: "50%", background: item.color, opacity: item.opacity, flexShrink: 0 }} />
-            <span style={{ fontSize: "10px", color: city.textMuted, fontFamily: city.bodyFont }}>{item.label}</span>
+          <div key={item.label} style={{ display:"flex", alignItems:"center", gap:"7px", marginBottom:"3px" }}>
+            <div style={{ width:"9px", height:"9px", borderRadius:"50%", background:item.color, opacity:item.opacity, flexShrink:0 }} />
+            <span style={{ fontSize:"10px", color:city.textMuted, fontFamily:city.bodyFont }}>{item.label}</span>
           </div>
         ))}
-      </div>
-
-      {/* Compass */}
-      <div style={{ position: "absolute", top: "12px", right: "14px", width: "28px", height: "28px", opacity: 0.3 }}>
-        <svg viewBox="0 0 28 28">
-          <circle cx="14" cy="14" r="13" fill="none" stroke={city.accent} strokeWidth="1" />
-          <polygon points="14,3 11,14 17,14" fill={city.accent} />
-          <polygon points="14,25 11,14 17,14" fill={city.accent} opacity="0.4" />
-          <text x="14" y="8" textAnchor="middle" fontSize="5" fill={city.accent} fontFamily="sans-serif" fontWeight="bold">N</text>
-        </svg>
       </div>
     </div>
   );
