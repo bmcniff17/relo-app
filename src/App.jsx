@@ -2133,7 +2133,7 @@ var {neighborhood, city, onBack} = props;
 
   useEffect(() => {
     setLoading(true); setData(null); setError(null);
-    const prompt = `You are a local expert on ${city.name}. Generate a detailed neighborhood guide for "${neighborhood.name}" in JSON only (no markdown, no backticks).
+    const prompt = `You are a local expert on ${city.name}. Generate a neighborhood guide for "${neighborhood.name}" in JSON only (no markdown, no backticks).
 
 Return this exact structure:
 {
@@ -2171,7 +2171,7 @@ Return this exact structure:
   }
 }
 
-Include 8-10 real items per category. For apartments, generate 10 realistic rental listings for ${neighborhood.name} with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 6-8 top industries and 5-6 major employers. For schools include real public, private, and universities near ${neighborhood.name}. For community include real subreddit, Facebook groups, and Discord servers for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
+Include 5 items per category. For apartments, generate 6 realistic listings with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 4-5 top industries and 4 major employers. For schools include 2-3 public, 1-2 private, and any nearby universities. For community include the real subreddit and 2 Facebook groups for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
 
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -2182,8 +2182,8 @@ Include 8-10 real items per category. For apartments, generate 10 realistic rent
         "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 6000,
+        model: "claude-haiku-4-20250514",
+        max_tokens: 3500,
         messages: [{ role: "user", content: prompt }]
       })
     })
