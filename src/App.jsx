@@ -2140,45 +2140,9 @@ var {neighborhood, city, onBack} = props;
       setLoading(false);
       return;
     }
-    const prompt = `You are a local expert on ${city.name}. Generate a neighborhood guide for "${neighborhood.name}" in JSON only (no markdown, no backticks).
-
-Return this exact structure:
-{
-  "headline": "short punchy tagline (max 10 words)",
-  "about": "2-3 sentence neighborhood overview",
-  "stats": { "walkScore": 0-100, "transitScore": 0-100, "bikeScore": 0-100, "safetyScore": 0-100, "avgRent1br": "$X,XXX", "avgRent2br": "$X,XXX", "bestFor": "who lives here" },
-  "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true}],
-  "bars": [{"name":"...","desc":"1 sentence"}],
-  "coffee": [{"name":"...","desc":"1 sentence"}],
-  "shopping": [{"name":"...","desc":"1 sentence"}],
-  "gyms": [{"name":"...","desc":"1 sentence"}],
-  "landmarks": [{"name":"...","desc":"1 sentence"}],
-  "parks": [{"name":"...","desc":"1 sentence"}],
-  "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}],
-  "jobs": {
-    "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high/medium/low"}],
-    "topEmployers": [{"name":"...","type":"...","desc":"1 sentence"}],
-    "jobMarketSummary": "2 sentence overview of job market",
-    "avgHouseholdIncome": "$XX,XXX",
-    "unemploymentRate": "X.X%"
-  },
-  "schools": {
-    "summary": "2 sentence overview of schools in this neighborhood",
-    "public": [{"name":"...","grades":"K-5 / 6-8 / 9-12","rating":8,"desc":"1 sentence"}],
-    "private": [{"name":"...","grades":"...","desc":"1 sentence"}],
-    "universities": [{"name":"...","desc":"1 sentence"}]
-  },
-  "community": {
-    "summary": "1-2 sentences about community vibe",
-    "subreddit": "r/cityname",
-    "facebook": ["Group Name 1","Group Name 2"],
-    "discord": ["Server Name 1"],
-    "nextdoor": true,
-    "events": [{"name":"...","freq":"weekly/monthly/annual","desc":"1 sentence"}]
-  }
-}
-
-Include 5 items per category. For apartments, generate 6 realistic listings with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 4-5 top industries and 4 major employers. For schools include 2-3 public, 1-2 private, and any nearby universities. For community include the real subreddit and 2 Facebook groups for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
+    const prompt = `Local expert on ${city.name}. Neighborhood guide for "${neighborhood.name}". JSON only, no markdown.
+{"headline":"tagline","about":"2 sentences","stats":{"walkScore":85,"transitScore":70,"bikeScore":60,"safetyScore":75,"avgRent1br":"$1,800","avgRent2br":"$2,400","bestFor":"young professionals"},"food":[{"name":"...","type":"cuisine","desc":"1 sentence","must":false}],"bars":[{"name":"...","desc":"1 sentence"}],"coffee":[{"name":"...","desc":"1 sentence"}],"shopping":[{"name":"...","desc":"1 sentence"}],"parks":[{"name":"...","desc":"1 sentence"}],"apartments":[{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feat1"],"tier":"mid"}],"jobs":{"topIndustries":[{"name":"...","avgSalary":"$XX,XXX","growth":"high"}],"topEmployers":[{"name":"...","type":"..."}],"jobMarketSummary":"1 sentence","avgHouseholdIncome":"$XX,XXX"},"schools":{"summary":"1 sentence","public":[{"name":"...","grades":"K-8","rating":8}],"private":[{"name":"...","grades":"K-12"}]},"community":{"summary":"1 sentence","subreddit":"r/cityname","events":[{"name":"...","freq":"monthly"}]}}
+Rules: 3 items per list. 4 apartments (studio/1br/2br/3br mix, budget+mid+luxury). 2 industries, 2 employers. Mark top food spot must:true.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
@@ -2193,8 +2157,8 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
         "x-api-key": apiKey
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 3500,
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 1500,
         messages: [{ role: "user", content: prompt }]
       })
     })
