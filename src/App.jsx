@@ -2181,7 +2181,7 @@ Return this exact structure:
 Include 5 items per category. For apartments, generate 6 realistic listings with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 4-5 top industries and 4 major employers. For schools include 2-3 public, 1-2 private, and any nearby universities. For community include the real subreddit and 2 Facebook groups for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 90000);
 
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -2194,7 +2194,7 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 3500,
+        max_tokens: 2000,
         messages: [{ role: "user", content: prompt }]
       })
     })
