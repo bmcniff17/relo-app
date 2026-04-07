@@ -2134,6 +2134,12 @@ var {neighborhood, city, onBack} = props;
 
   useEffect(() => {
     setLoading(true); setData(null); setError(null);
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (!apiKey || apiKey === "YOUR_ANTHROPIC_KEY_HERE") {
+      setError("Missing API key — add VITE_ANTHROPIC_API_KEY to your .env file and rebuild.");
+      setLoading(false);
+      return;
+    }
     const prompt = `You are a local expert on ${city.name}. Generate a neighborhood guide for "${neighborhood.name}" in JSON only (no markdown, no backticks).
 
 Return this exact structure:
@@ -2184,10 +2190,10 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
         "Content-Type": "application/json",
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
-        "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY
+        "x-api-key": apiKey
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 3500,
         messages: [{ role: "user", content: prompt }]
       })
