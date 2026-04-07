@@ -2125,6 +2125,7 @@ var {neighborhood, city, onBack} = props;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [activeSection, setActiveSection] = useState("food");
   const [expandedItem, setExpandedItem] = useState(null);
   const [selectedPlace, setSelectedPlace] = useState(null);
@@ -2173,8 +2174,12 @@ Return this exact structure:
 
 Include 5 items per category. For apartments, generate 6 realistic listings with varied bedroom counts (studios, 1br, 2br, 3br) and price tiers (budget/mid/luxury). For jobs include 4-5 top industries and 4 major employers. For schools include 2-3 public, 1-2 private, and any nearby universities. For community include the real subreddit and 2 Facebook groups for ${city.name}. Mark the top 2 must-visit food spots with must:true.`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         "anthropic-version": "2023-06-01",
@@ -2189,15 +2194,22 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
     })
     .then(r => r.json())
     .then(d => {
-      if (d.error) throw new Error(d.error.message);
+      if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
       const raw = (d.content || []).map(i => i.text || "").join("");
       const jsonMatch = raw.match(new RegExp("\\{[\\s\\S]*\\}"));
       if (!jsonMatch) throw new Error("No JSON in response");
       setData(JSON.parse(jsonMatch[0]));
       setLoading(false);
     })
-    .catch(err => { setError(err.message); setLoading(false); });
-  }, [neighborhood.name, city.id]);
+    .catch(err => {
+      if (err.name === "AbortError") setError("Request timed out — try again.");
+      else setError(err.message || "Something went wrong");
+      setLoading(false);
+    })
+    .finally(() => clearTimeout(timeout));
+
+    return () => { controller.abort(); clearTimeout(timeout); };
+  }, [neighborhood.name, city.id, retryKey]);
 
   const sections = data ? (() => {
     const core = ["food","apartments","bars","coffee","shopping","gyms","landmarks","parks"];
@@ -2272,7 +2284,7 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
       {error && (
         <div style={{ padding:"32px", textAlign:"center" }}>
           <p style={{ fontSize:"13px", color:city.textMuted, marginBottom:"12px" }}>Couldn't load guide — {error}</p>
-          <button onClick={() => { setLoading(true); setError(null); }} style={{ background:city.accent, border:"none", color:"#fff", padding:"8px 20px", cursor:"pointer", fontFamily:city.bodyFont, fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase" }}>Try Again</button>
+          <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1); }} style={{ background:city.accent, border:"none", color:"#fff", padding:"8px 20px", cursor:"pointer", fontFamily:city.bodyFont, fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase" }}>Try Again</button>
         </div>
       )}
 
