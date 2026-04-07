@@ -741,7 +741,7 @@ var {onKnow, onExplore} = props;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'EB Garamond', Georgia, serif", overflow: "hidden", opacity: v ? 1 : 0, transition: "opacity 0.6s ease" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, display: "flex", justifyContent: "center", paddingTop: "28px", pointerEvents: "none" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 30, display: "flex", justifyContent: "center", paddingTop: "64px", pointerEvents: "none" }}>
         <h1 style={{ margin: 0, fontSize: "clamp(28px,4.5vw,48px)", fontWeight: "400", letterSpacing: "-2px", fontFamily: "'Playfair Display',Georgia,serif", color: "#f0ece6", textShadow: "0 2px 24px rgba(0,0,0,0.95)", lineHeight: 1 }}>Relo</h1>
       </div>
 
