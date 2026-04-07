@@ -2182,7 +2182,7 @@ Include 5 items per category. For apartments, generate 6 realistic listings with
         "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-20250514",
+        model: "claude-3-5-haiku-20241022",
         max_tokens: 3500,
         messages: [{ role: "user", content: prompt }]
       })
