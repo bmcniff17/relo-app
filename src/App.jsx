@@ -1501,48 +1501,47 @@ const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
 const photoCache = {};
 
 const PlacePhoto = (props) => {
-var {placeName, placeType, neighborhood, city, style} = props;
+  var {placeName, placeType, neighborhood, city, style} = props;
   const [photoUrl, setPhotoUrl] = useState(null);
 
   useEffect(() => {
-    if (!UNSPLASH_KEY) return;
     setPhotoUrl(null);
+    const cacheKey = `${placeName}-${city}`;
+    if (photoCache[cacheKey]) { setPhotoUrl(photoCache[cacheKey]); return; }
 
-    // Build a search query using the specific place name
-    const typeMap = {
-      food: "restaurant food dining",
-      bars: "bar cocktails nightlife",
-      coffee: "coffee shop cafe",
-      shopping: "boutique shop retail",
-      gyms: "gym fitness workout",
-      landmarks: "landmark attraction",
-      parks: "park outdoor nature",
-    };
-    const typeQuery = typeMap[placeType] || "restaurant";
-    const query = `${placeName} ${typeQuery} ${city}`;
-    const cacheKey = `${placeName}-${placeType}-${city}`;
-
-    if (photoCache[cacheKey]) {
-      setPhotoUrl(photoCache[cacheKey]);
-      return;
-    }
-
-    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d?.urls?.regular) {
-          photoCache[cacheKey] = d.urls.regular;
-          setPhotoUrl(d.urls.regular);
+    // Try Google Places first for real venue photos
+    loadGoogleMaps().then(() => {
+      const svc = new window.google.maps.places.PlacesService(document.createElement("div"));
+      svc.findPlaceFromText(
+        { query: `${placeName} ${neighborhood} ${city}`, fields: ["photos"] },
+        (results, status) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length) {
+            const url = results[0].photos[0].getUrl({ maxWidth: 800, maxHeight: 500 });
+            photoCache[cacheKey] = url;
+            setPhotoUrl(url);
+          } else {
+            // Fallback: Unsplash with place name + type
+            if (!UNSPLASH_KEY) return;
+            const typeMap = { food:"restaurant food", bars:"bar cocktails", coffee:"cafe coffee", shopping:"boutique shop", gyms:"gym fitness", landmarks:"landmark", parks:"park nature" };
+            const q = `${placeName} ${typeMap[placeType]||"place"} ${city}`;
+            fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+              .then(r => r.json())
+              .then(d => { if (d?.urls?.regular) { photoCache[cacheKey] = d.urls.regular; setPhotoUrl(d.urls.regular); } })
+              .catch(() => {});
+          }
         }
-      })
-      .catch(() => {});
-  }, [placeName, placeType, city]);
+      );
+    }).catch(() => {});
+  }, [placeName, city]);
 
   return (
     <div style={style}>
-      {photoUrl && (
-        <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block", opacity:0.88 }} />
-      )}
+      {photoUrl
+        ? <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block" }} />
+        : <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span style={{ fontSize:"11px", color:"#555", letterSpacing:"1px", textTransform:"uppercase" }}>{placeType}</span>
+          </div>
+      }
     </div>
   );
 }
