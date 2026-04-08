@@ -1508,19 +1508,19 @@ var {placeName, placeType, neighborhood, city, style} = props;
     if (!UNSPLASH_KEY) return;
     setPhotoUrl(null);
 
-    // Build a search query focused on interior/food shots
+    // Build a search query using the specific place name
     const typeMap = {
-      food: "restaurant interior food",
-      bars: "bar interior cocktails",
-      coffee: "coffee shop cafe interior",
-      shopping: "boutique shop interior",
-      gyms: "gym fitness studio",
-      landmarks: "landmark architecture",
-      parks: "park nature outdoor",
+      food: "restaurant food dining",
+      bars: "bar cocktails nightlife",
+      coffee: "coffee shop cafe",
+      shopping: "boutique shop retail",
+      gyms: "gym fitness workout",
+      landmarks: "landmark attraction",
+      parks: "park outdoor nature",
     };
-    const typeQuery = typeMap[placeType] || "restaurant interior";
-    const query = `${typeQuery} ${city}`;
-    const cacheKey = query;
+    const typeQuery = typeMap[placeType] || "restaurant";
+    const query = `${placeName} ${typeQuery} ${city}`;
+    const cacheKey = `${placeName}-${placeType}-${city}`;
 
     if (photoCache[cacheKey]) {
       setPhotoUrl(photoCache[cacheKey]);
