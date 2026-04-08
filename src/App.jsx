@@ -1501,38 +1501,20 @@ const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
 const photoCache = {};
 
 const PlacePhoto = (props) => {
-  var {placeName, placeType, neighborhood, city, style} = props;
+  var {photoQuery, placeName, placeType, style} = props;
   const [photoUrl, setPhotoUrl] = useState(null);
 
   useEffect(() => {
     setPhotoUrl(null);
-    const cacheKey = `${placeName}-${city}`;
+    if (!UNSPLASH_KEY) return;
+    const query = photoQuery || placeName;
+    const cacheKey = query;
     if (photoCache[cacheKey]) { setPhotoUrl(photoCache[cacheKey]); return; }
-
-    // Try Google Places first for real venue photos
-    loadGoogleMaps().then(() => {
-      const svc = new window.google.maps.places.PlacesService(document.createElement("div"));
-      svc.findPlaceFromText(
-        { query: `${placeName} ${neighborhood} ${city}`, fields: ["photos"] },
-        (results, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results?.[0]?.photos?.length) {
-            const url = results[0].photos[0].getUrl({ maxWidth: 800, maxHeight: 500 });
-            photoCache[cacheKey] = url;
-            setPhotoUrl(url);
-          } else {
-            // Fallback: Unsplash with place name + type
-            if (!UNSPLASH_KEY) return;
-            const typeMap = { food:"restaurant food", bars:"bar cocktails", coffee:"cafe coffee", shopping:"boutique shop", gyms:"gym fitness", landmarks:"landmark", parks:"park nature" };
-            const q = `${placeName} ${typeMap[placeType]||"place"} ${city}`;
-            fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
-              .then(r => r.json())
-              .then(d => { if (d?.urls?.regular) { photoCache[cacheKey] = d.urls.regular; setPhotoUrl(d.urls.regular); } })
-              .catch(() => {});
-          }
-        }
-      );
-    }).catch(() => {});
-  }, [placeName, city]);
+    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+      .then(r => r.json())
+      .then(d => { if (d?.urls?.regular) { photoCache[cacheKey] = d.urls.regular; setPhotoUrl(d.urls.regular); } })
+      .catch(() => {});
+  }, [photoQuery, placeName]);
 
   return (
     <div style={style}>
@@ -2146,13 +2128,13 @@ Return this exact structure:
   "headline": "short punchy tagline (max 10 words)",
   "about": "2-3 sentence neighborhood overview",
   "stats": { "walkScore": 0-100, "transitScore": 0-100, "bikeScore": 0-100, "safetyScore": 0-100, "avgRent1br": "$X,XXX", "avgRent2br": "$X,XXX", "bestFor": "who lives here" },
-  "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true}],
-  "bars": [{"name":"...","desc":"1 sentence"}],
-  "coffee": [{"name":"...","desc":"1 sentence"}],
-  "shopping": [{"name":"...","desc":"1 sentence"}],
-  "gyms": [{"name":"...","desc":"1 sentence"}],
-  "landmarks": [{"name":"...","desc":"1 sentence"}],
-  "parks": [{"name":"...","desc":"1 sentence"}],
+  "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true,"photo":"3-5 word vivid Unsplash query e.g. steaming ramen bowl close-up"}],
+  "bars": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. moody craft cocktail bar"}],
+  "coffee": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. latte art cozy cafe"}],
+  "shopping": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. curated vintage clothing boutique"}],
+  "gyms": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. modern gym interior weights"}],
+  "landmarks": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. historic bridge golden hour"}],
+  "parks": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. urban park cherry blossoms"}],
   "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}],
   "jobs": {
     "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high/medium/low"}],
@@ -2345,8 +2327,7 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
                         <PlacePhoto
                           placeName={item.name}
                           placeType={activeSection}
-                          neighborhood={neighborhood.name}
-                          city={city.name}
+                          photoQuery={item.photo}
                           style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
                         />
                         <div style={{ padding:"14px 18px" }}>
