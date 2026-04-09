@@ -1519,7 +1519,7 @@ const PlacePhoto = (props) => {
   return (
     <div style={style}>
       {photoUrl
-        ? <img src={photoUrl} alt={placeName} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block" }} />
+        ? <img src={photoUrl} alt={placeName} onError={() => setPhotoUrl(null)} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block" }} />
         : <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ fontSize:"11px", color:"#555", letterSpacing:"1px", textTransform:"uppercase" }}>{placeType}</span>
           </div>
@@ -1548,7 +1548,7 @@ var {item, placeType, neighborhood, city, onClose} = props;
       coffee:"coffee shop interior",shopping:"boutique shop interior",
       gyms:"gym fitness studio",landmarks:"landmark architecture exterior",parks:"park nature outdoor"
     };
-    const q = `${typeMap[placeType]||"restaurant"} ${city.name}`;
+    const q = item.photo || `${typeMap[placeType]||"restaurant"} ${city.name}`;
     fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&count=4&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setPhotos(d.map(p => p.urls.regular)); })
@@ -1588,7 +1588,7 @@ var {item, placeType, neighborhood, city, onClose} = props;
       {/* Photo Gallery */}
       {photos.length > 0 && (
         <div style={{ position:"relative", height:"220px", overflow:"hidden" }}>
-          <img src={photos[activePhoto]} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.9 }} />
+          <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.9 }} />
           {photos.length > 1 && (
             <div style={{ position:"absolute", bottom:"10px", left:"50%", transform:"translateX(-50%)", display:"flex", gap:"6px" }}>
               {photos.map((_,i) => (
