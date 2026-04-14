@@ -1498,6 +1498,7 @@ var {neighborhood, city, selectedPlace} = props;
 
 // ── Place Photo Card (Unsplash) ───────────────────────────────────────────────
 const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
+const WALKSCORE_KEY = import.meta.env.VITE_WALKSCORE_KEY;
 const photoCache = {};
 
 const PlacePhoto = (props) => {
@@ -2161,8 +2162,51 @@ var {neighborhood, city, onBack} = props;
   const [activeSection, setActiveSection] = useState("food");
   const [expandedItem, setExpandedItem] = useState(null);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [realStats, setRealStats] = useState({});
   const v = useMount();
   const Skyline = SKYLINES[city.id];
+
+  // Fetch real Walk Score + Census rent data
+  useEffect(() => {
+    setRealStats({});
+
+    // Walk Score: real walkability, transit, bike scores
+    if (WALKSCORE_KEY && neighborhood.lat && neighborhood.lng) {
+      const addr = encodeURIComponent(`${neighborhood.name}, ${city.name}`);
+      fetch(`https://api.walkscore.com/score?format=json&address=${addr}&lat=${neighborhood.lat}&lon=${neighborhood.lng}&transit=1&bike=1&wsapikey=${WALKSCORE_KEY}`)
+        .then(r => r.json())
+        .then(d => {
+          const updates = {};
+          if (d.walkscore != null) updates.walkScore = d.walkscore;
+          if (d.transit?.score != null) updates.transitScore = d.transit.score;
+          if (d.bike?.score != null) updates.bikeScore = d.bike.score;
+          if (Object.keys(updates).length) setRealStats(prev => ({ ...prev, ...updates, _walkscoreLive: true }));
+        })
+        .catch(() => {});
+    }
+
+    // Census ACS: real median rent by bedroom count for the neighborhood's census tract
+    if (neighborhood.lat && neighborhood.lng) {
+      fetch(`https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x=${neighborhood.lng}&y=${neighborhood.lat}&benchmark=2020&vintage=2020&layers=Census%20Tracts&format=json`)
+        .then(r => r.json())
+        .then(geo => {
+          const tract = geo?.result?.geographies?.["Census Tracts"]?.[0];
+          if (!tract) return null;
+          return fetch(`https://api.census.gov/data/2022/acs/acs5?get=B25031_003E,B25031_004E&for=tract:${tract.TRACT}&in=state:${tract.STATE}%20county:${tract.COUNTY}`);
+        })
+        .then(r => r?.json())
+        .then(acs => {
+          if (!acs?.[1]) return;
+          const rent1br = parseInt(acs[1][0]);
+          const rent2br = parseInt(acs[1][1]);
+          const updates = {};
+          if (!isNaN(rent1br) && rent1br > 0) updates.avgRent1br = `$${rent1br.toLocaleString()}/mo`;
+          if (!isNaN(rent2br) && rent2br > 0) updates.avgRent2br = `$${rent2br.toLocaleString()}/mo`;
+          if (Object.keys(updates).length) setRealStats(prev => ({ ...prev, ...updates, _rentLive: true }));
+        })
+        .catch(() => {});
+    }
+  }, [neighborhood.name]);
 
   useEffect(() => {
     setLoading(true); setData(null); setError(null);
@@ -2284,17 +2328,20 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
       {data?.stats && (
         <div style={{ background:city.card, borderTop:`1px solid ${city.cardBorder}`, borderBottom:`1px solid ${city.cardBorder}`, padding:"14px 32px", display:"flex", gap:"28px", overflowX:"auto", flexWrap:"wrap" }}>
           {[
-            {l:"Walk Score",v:data.stats.walkScore,max:100},
-            {l:"Transit",v:data.stats.transitScore,max:100},
-            {l:"Bike Score",v:data.stats.bikeScore,max:100},
-            {l:"Safety Score",v:data.stats.safetyScore,max:100,safety:true},
-            {l:"1BR Rent",v:data.stats.avgRent1br},
-            {l:"2BR Rent",v:data.stats.avgRent2br}
+            {l:"Walk Score",   v:realStats.walkScore    ?? data.stats.walkScore,    max:100, live:realStats._walkscoreLive},
+            {l:"Transit",      v:realStats.transitScore ?? data.stats.transitScore, max:100, live:realStats._walkscoreLive},
+            {l:"Bike Score",   v:realStats.bikeScore    ?? data.stats.bikeScore,    max:100, live:realStats._walkscoreLive},
+            {l:"Safety Score", v:data.stats.safetyScore, max:100, safety:true},
+            {l:"1BR Rent",     v:realStats.avgRent1br   ?? data.stats.avgRent1br,   live:realStats._rentLive},
+            {l:"2BR Rent",     v:realStats.avgRent2br   ?? data.stats.avgRent2br,   live:realStats._rentLive},
           ].map(s => {
             const safetyColor = s.safety ? (s.v >= 75 ? "#4caf50" : s.v >= 50 ? "#ff9800" : "#f44336") : city.accent;
             return (
               <div key={s.l} style={{ minWidth:"72px" }}>
-                <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted, marginBottom:"4px" }}>{s.l}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:"5px", marginBottom:"4px" }}>
+                  <span style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted }}>{s.l}</span>
+                  {s.live && <span style={{ fontSize:"8px", padding:"1px 4px", background:"#4caf5022", color:"#4caf50", border:"1px solid #4caf5044", letterSpacing:"1px" }}>LIVE</span>}
+                </div>
                 {s.max
                   ? <div>
                       <div style={{ fontSize:"18px", fontFamily:city.displayFont, color:safetyColor }}>{s.v}</div>
