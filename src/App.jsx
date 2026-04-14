@@ -1501,14 +1501,14 @@ const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
 const photoCache = {};
 
 const PlacePhoto = (props) => {
-  var {photoQuery, placeName, placeType, cityName, style} = props;
+  var {photoQuery, placeName, placeType, cityName, neighborhoodName, style} = props;
   const [photoUrl, setPhotoUrl] = useState(null);
 
   useEffect(() => {
     setPhotoUrl(null);
     if (!placeName) return;
     let cancelled = false;
-    const cacheKey = `${placeName}-${cityName}`;
+    const cacheKey = `${placeName}-${neighborhoodName}-${cityName}`;
 
     // Unsplash fallback: use cuisine/type query only — Unsplash has no photos of specific venues
     const tryUnsplash = () => {
@@ -1527,7 +1527,7 @@ const PlacePhoto = (props) => {
       try {
         const { Place } = await window.google.maps.importLibrary("places");
         const { places } = await Place.searchByText({
-          textQuery: `${placeName} ${cityName}`,
+          textQuery: `${placeName} ${neighborhoodName} ${cityName}`,
           fields: ["photos"],
           maxResultCount: 1,
         });
@@ -1547,7 +1547,10 @@ const PlacePhoto = (props) => {
   return (
     <div style={style}>
       {photoUrl
-        ? <img src={photoUrl} alt={placeName} onError={() => setPhotoUrl(null)} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", display:"block" }} />
+        ? <div style={{ width:"100%", height:"100%", position:"relative", overflow:"hidden" }}>
+            <img src={photoUrl} alt="" onError={() => setPhotoUrl(null)} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", filter:"blur(12px) brightness(0.6)", transform:"scale(1.1)" }} />
+            <img src={photoUrl} alt={placeName} onError={() => setPhotoUrl(null)} style={{ position:"relative", width:"100%", height:"100%", objectFit:"contain", display:"block" }} />
+          </div>
         : <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ fontSize:"11px", color:"#555", letterSpacing:"1px", textTransform:"uppercase" }}>{placeType}</span>
           </div>
@@ -1586,7 +1589,7 @@ var {item, placeType, neighborhood, city, onClose} = props;
       try {
         const { Place } = await window.google.maps.importLibrary("places");
         const { places } = await Place.searchByText({
-          textQuery: `${item.name} ${city.name}`,
+          textQuery: `${item.name} ${neighborhood} ${city.name}`,
           fields: ["photos"],
           maxResultCount: 1,
         });
@@ -1634,8 +1637,9 @@ var {item, placeType, neighborhood, city, onClose} = props;
     <div style={{ background:city.bg, border:`1px solid ${city.accent}55`, borderLeft:`3px solid ${city.accent}`, marginTop:"2px", overflow:"hidden" }}>
       {/* Photo Gallery */}
       {photos.length > 0 && (
-        <div style={{ position:"relative", height:"220px", overflow:"hidden" }}>
-          <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", opacity:0.9 }} />
+        <div style={{ position:"relative", height:"300px", overflow:"hidden" }}>
+          <img src={photos[activePhoto]} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", filter:"blur(12px) brightness(0.5)", transform:"scale(1.1)" }} />
+          <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ position:"relative", width:"100%", height:"100%", objectFit:"contain", opacity:0.95 }} />
           {photos.length > 1 && (
             <div style={{ position:"absolute", bottom:"10px", left:"50%", transform:"translateX(-50%)", display:"flex", gap:"6px" }}>
               {photos.map((_,i) => (
@@ -2379,7 +2383,8 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
                           placeType={activeSection}
                           photoQuery={item.photo}
                           cityName={city.name}
-                          style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
+                          neighborhoodName={neighborhood.name}
+                          style={{ width:"100%", height:"220px", background:city.card, overflow:"hidden", position:"relative" }}
                         />
                         <div style={{ padding:"14px 18px" }}>
                           {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
