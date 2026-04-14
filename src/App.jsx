@@ -42,6 +42,29 @@ function osmToLatLng(geometry) {
   return [];
 }
 
+// Fetch a neighborhood boundary polygon from Nominatim, returns coords array or []
+async function fetchNeighborhoodBoundary(neighborhoodName, cityName) {
+  const query = encodeURIComponent(`${neighborhoodName}, ${cityName}`);
+  const headers = { "Accept-Language": "en", "User-Agent": "ReloApp/1.0" };
+  const tryFetch = async (extra = "") => {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1&limit=5&addressdetails=0${extra}`,
+      { headers }
+    );
+    const results = await r.json();
+    const withPoly = (results || []).find(x =>
+      x.geojson?.type === "Polygon" || x.geojson?.type === "MultiPolygon"
+    );
+    return withPoly ? osmToLatLng(withPoly.geojson) : [];
+  };
+  // First try: narrow to neighbourhood/suburb feature types
+  let coords = await tryFetch("&featuretype=neighbourhood");
+  if (coords.length < 3) coords = await tryFetch("&featuretype=suburb");
+  // Final fallback: no feature type filter
+  if (coords.length < 3) coords = await tryFetch();
+  return coords;
+}
+
 const NeighborhoodMap = (props) => {
   var {city, scored, selectedNeighborhood, onSelectNeighborhood} = props;
   const mapRef = useRef(null);
@@ -164,37 +187,20 @@ const NeighborhoodMap = (props) => {
     const n = scored.find(x => x.name === selectedNeighborhood);
     if (!n) return;
 
-    const query = encodeURIComponent(`${n.name}, ${city.name}`);
-    fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1&limit=1&addressdetails=0`, {
-      headers: { "Accept-Language": "en" }
-    })
-      .then(r => r.json())
-      .then(results => {
-        if (!results?.[0]?.geojson) return;
-        const coords = osmToLatLng(results[0].geojson);
-        if (coords.length < 3) return;
+    fetchNeighborhoodBoundary(n.name, city.name)
+      .then(coords => {
+        if (!coords.length || !mapInstance.current) return;
         outlineRef.current.forEach(p => p.setMap(null));
         outlineRef.current = [];
-        // Glow layer (wider, more transparent)
         outlineRef.current.push(new window.google.maps.Polygon({
-          paths: coords,
-          strokeColor: city.accent,
-          strokeOpacity: 0.35,
-          strokeWeight: 8,
-          fillOpacity: 0,
+          paths: coords, strokeColor: city.accent, strokeOpacity: 0.3,
+          strokeWeight: 8, fillOpacity: 0, map: mapInstance.current,
+        }));
+        outlineRef.current.push(new window.google.maps.Polygon({
+          paths: coords, strokeColor: city.accent, strokeOpacity: 0.9,
+          strokeWeight: 2.5, fillColor: city.accent, fillOpacity: 0.07,
           map: mapInstance.current,
         }));
-        // Sharp inner border
-        outlineRef.current.push(new window.google.maps.Polygon({
-          paths: coords,
-          strokeColor: city.accent,
-          strokeOpacity: 0.9,
-          strokeWeight: 2.5,
-          fillColor: city.accent,
-          fillOpacity: 0.07,
-          map: mapInstance.current,
-        }));
-        // Fit map to the outline
         const bounds = new window.google.maps.LatLngBounds();
         coords.forEach(p => bounds.extend(p));
         mapInstance.current.fitBounds(bounds, 80);
@@ -1483,36 +1489,26 @@ var {neighborhood, city, selectedPlace} = props;
           },
         });
 
-        // Fetch neighborhood outline from OpenStreetMap Nominatim
-        const query = encodeURIComponent(`${neighborhood.name}, ${city.name}`);
-        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1&limit=1&addressdetails=0`, {
-          headers: { "Accept-Language": "en" }
-        })
-          .then(r => r.json())
-          .then(results => {
-            if (!results?.[0]?.geojson) return;
-            const coords = osmToLatLng(results[0].geojson);
-            if (coords.length < 3) return;
-            // Clear old outline
+        // Fetch neighborhood boundary from OpenStreetMap
+        fetchNeighborhoodBoundary(neighborhood.name, city.name)
+          .then(coords => {
+            if (!coords.length || !mapInstance.current) return;
             outlineRef.current.forEach(p => p.setMap(null));
             outlineRef.current = [];
-            // Draw glowing outline
-            const outline = new window.google.maps.Polygon({
-              paths: coords,
-              strokeColor: city.accent,
-              strokeOpacity: 0.85,
-              strokeWeight: 2.5,
-              fillColor: city.accent,
-              fillOpacity: 0.08,
+            outlineRef.current.push(new window.google.maps.Polygon({
+              paths: coords, strokeColor: city.accent, strokeOpacity: 0.3,
+              strokeWeight: 8, fillOpacity: 0, map: mapInstance.current,
+            }));
+            outlineRef.current.push(new window.google.maps.Polygon({
+              paths: coords, strokeColor: city.accent, strokeOpacity: 0.9,
+              strokeWeight: 2.5, fillColor: city.accent, fillOpacity: 0.08,
               map: mapInstance.current,
-            });
-            outlineRef.current.push(outline);
-            // Fit map to outline bounds
+            }));
             const bounds = new window.google.maps.LatLngBounds();
             coords.forEach(p => bounds.extend(p));
-            mapInstance.current.fitBounds(bounds);
+            mapInstance.current.fitBounds(bounds, 40);
           })
-          .catch(() => {}); // silently fail if outline not found
+          .catch(() => {});
       })
       .catch(() => setMapError(true));
   }, [neighborhood.lat, neighborhood.lng]);
