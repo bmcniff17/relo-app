@@ -1501,25 +1501,53 @@ const UNSPLASH_KEY = import.meta.env.VITE_UNSPLASH_KEY;
 const photoCache = {};
 
 const PlacePhoto = (props) => {
-  var {photoQuery, placeName, placeType, style} = props;
+  var {photoQuery, placeName, placeType, cityName, style} = props;
   const [photoUrl, setPhotoUrl] = useState(null);
 
   useEffect(() => {
     setPhotoUrl(null);
-    if (!UNSPLASH_KEY) return;
-    const query = photoQuery || placeName;
-    const cacheKey = query;
+    if (!placeName) return;
+    let cancelled = false;
+    const cacheKey = `${placeName}-${cityName}`;
+
+    // Unsplash fallback: use cuisine/type query only — Unsplash has no photos of specific venues
+    const tryUnsplash = () => {
+      if (!UNSPLASH_KEY || cancelled) return;
+      const q = photoQuery || `${placeType} interior`;
+      fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+        .then(r => r.json())
+        .then(d => { if (!cancelled && d?.urls?.regular) { photoCache[cacheKey] = d.urls.regular; setPhotoUrl(d.urls.regular); } })
+        .catch(() => {});
+    };
+
     if (photoCache[cacheKey]) { setPhotoUrl(photoCache[cacheKey]); return; }
-    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
-      .then(r => r.json())
-      .then(d => { if (d?.urls?.regular) { photoCache[cacheKey] = d.urls.regular; setPhotoUrl(d.urls.regular); } })
-      .catch(() => {});
-  }, [photoQuery, placeName]);
+
+    loadGoogleMaps().then(async () => {
+      if (cancelled) return;
+      try {
+        const { Place } = await window.google.maps.importLibrary("places");
+        const { places } = await Place.searchByText({
+          textQuery: `${placeName} ${cityName}`,
+          fields: ["photos"],
+          maxResultCount: 1,
+        });
+        if (!cancelled && places?.[0]?.photos?.[0]) {
+          const url = places[0].photos[0].getURI({ maxWidth: 800, maxHeight: 500 });
+          photoCache[cacheKey] = url;
+          setPhotoUrl(url);
+        } else {
+          tryUnsplash();
+        }
+      } catch { tryUnsplash(); }
+    }).catch(tryUnsplash);
+
+    return () => { cancelled = true; };
+  }, [placeName, cityName]);
 
   return (
     <div style={style}>
       {photoUrl
-        ? <img src={photoUrl} alt={placeName} onError={() => setPhotoUrl(null)} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center", display:"block" }} />
+        ? <img src={photoUrl} alt={placeName} onError={() => setPhotoUrl(null)} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", display:"block" }} />
         : <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ fontSize:"11px", color:"#555", letterSpacing:"1px", textTransform:"uppercase" }}>{placeType}</span>
           </div>
@@ -1541,18 +1569,37 @@ var {item, placeType, neighborhood, city, onClose} = props;
   const cacheKey = `${item.name}-${city.name}`;
 
   useEffect(() => {
-    // Fetch multiple Unsplash photos
-    if (!UNSPLASH_KEY) return;
-    const typeMap = {
-      food:"restaurant interior food",bars:"bar interior cocktails",
-      coffee:"coffee shop interior",shopping:"boutique shop interior",
-      gyms:"gym fitness studio",landmarks:"landmark architecture exterior",parks:"park nature outdoor"
+    let cancelled = false;
+
+    const tryUnsplashGallery = () => {
+      if (!UNSPLASH_KEY || cancelled) return;
+      const typeMap = { food:"restaurant interior",bars:"bar cocktails interior",coffee:"coffee shop interior",shopping:"boutique shop interior",gyms:"gym fitness interior",landmarks:"landmark architecture exterior",parks:"park nature landscape" };
+      const q = item.photo || typeMap[placeType] || "restaurant interior";
+      fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&count=4&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
+        .then(r => r.json())
+        .then(d => { if (!cancelled && Array.isArray(d)) setPhotos(d.map(p => p.urls.regular)); })
+        .catch(() => {});
     };
-    const q = item.photo || `${typeMap[placeType]||"restaurant"} ${city.name}`;
-    fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(q)}&count=4&orientation=landscape&content_filter=high&client_id=${UNSPLASH_KEY}`)
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setPhotos(d.map(p => p.urls.regular)); })
-      .catch(() => {});
+
+    loadGoogleMaps().then(async () => {
+      if (cancelled) return;
+      try {
+        const { Place } = await window.google.maps.importLibrary("places");
+        const { places } = await Place.searchByText({
+          textQuery: `${item.name} ${city.name}`,
+          fields: ["photos"],
+          maxResultCount: 1,
+        });
+        if (!cancelled && places?.[0]?.photos?.length > 0) {
+          setPhotos(places[0].photos.slice(0, 4).map(p => p.getURI({ maxWidth: 800, maxHeight: 600 })));
+        } else {
+          tryUnsplashGallery();
+        }
+      } catch { tryUnsplashGallery(); }
+      return;
+    }).catch(tryUnsplashGallery);
+
+    return () => { cancelled = true; };
   }, [item.name]);
 
   useEffect(() => {
@@ -1588,7 +1635,7 @@ var {item, placeType, neighborhood, city, onClose} = props;
       {/* Photo Gallery */}
       {photos.length > 0 && (
         <div style={{ position:"relative", height:"220px", overflow:"hidden" }}>
-          <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.9 }} />
+          <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", opacity:0.9 }} />
           {photos.length > 1 && (
             <div style={{ position:"absolute", bottom:"10px", left:"50%", transform:"translateX(-50%)", display:"flex", gap:"6px" }}>
               {photos.map((_,i) => (
@@ -2128,13 +2175,13 @@ Return this exact structure:
   "headline": "short punchy tagline (max 10 words)",
   "about": "2-3 sentence neighborhood overview",
   "stats": { "walkScore": 0-100, "transitScore": 0-100, "bikeScore": 0-100, "safetyScore": 0-100, "avgRent1br": "$X,XXX", "avgRent2br": "$X,XXX", "bestFor": "who lives here" },
-  "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true,"photo":"3-5 word vivid Unsplash query e.g. steaming ramen bowl close-up"}],
-  "bars": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. moody craft cocktail bar"}],
-  "coffee": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. latte art cozy cafe"}],
-  "shopping": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. curated vintage clothing boutique"}],
-  "gyms": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. modern gym interior weights"}],
-  "landmarks": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. historic bridge golden hour"}],
-  "parks": [{"name":"...","desc":"1 sentence","photo":"3-5 word vivid Unsplash query e.g. urban park cherry blossoms"}],
+  "food": [{"name":"...","type":"cuisine","desc":"1 sentence","must":true,"photo":"3-5 word wide interior Unsplash query e.g. japanese restaurant interior wide shot"}],
+  "bars": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide interior Unsplash query e.g. craft cocktail bar interior wide"}],
+  "coffee": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide interior Unsplash query e.g. cozy coffee shop interior wide"}],
+  "shopping": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide interior Unsplash query e.g. boutique clothing store interior"}],
+  "gyms": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide interior Unsplash query e.g. modern gym interior wide"}],
+  "landmarks": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide exterior Unsplash query e.g. historic brick building exterior wide"}],
+  "parks": [{"name":"...","desc":"1 sentence","photo":"3-5 word wide Unsplash query e.g. urban park wide landscape path"}],
   "apartments": [{"name":"...","address":"...","beds":1,"baths":1,"sqft":750,"rent":"$X,XXX/mo","features":["feature1","feature2"],"tier":"budget"}],
   "jobs": {
     "topIndustries": [{"name":"...","desc":"1 sentence","avgSalary":"$XX,XXX","growth":"high/medium/low"}],
@@ -2175,7 +2222,7 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 5000,
+        max_tokens: 8000,
         messages: [{ role: "user", content: prompt }]
       })
     })
@@ -2185,7 +2232,10 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
       const raw = (d.content || []).map(i => i.text || "").join("");
       const jsonMatch = raw.match(new RegExp("\\{[\\s\\S]*\\}"));
       if (!jsonMatch) throw new Error("No JSON in response");
-      setData(JSON.parse(jsonMatch[0]));
+      let parsed;
+      try { parsed = JSON.parse(jsonMatch[0]); }
+      catch (e) { throw new Error("Response was cut off — try again"); }
+      setData(parsed);
       setLoading(false);
     })
     .catch(err => {
@@ -2328,6 +2378,7 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
                           placeName={item.name}
                           placeType={activeSection}
                           photoQuery={item.photo}
+                          cityName={city.name}
                           style={{ width:"100%", height:"160px", background:city.card, overflow:"hidden", position:"relative" }}
                         />
                         <div style={{ padding:"14px 18px" }}>
