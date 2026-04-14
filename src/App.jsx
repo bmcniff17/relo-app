@@ -1637,7 +1637,7 @@ var {item, placeType, neighborhood, city, onClose} = props;
     <div style={{ background:city.bg, border:`1px solid ${city.accent}55`, borderLeft:`3px solid ${city.accent}`, marginTop:"2px", overflow:"hidden" }}>
       {/* Photo Gallery */}
       {photos.length > 0 && (
-        <div style={{ position:"relative", height:"300px", overflow:"hidden" }}>
+        <div style={{ position:"relative", height:"380px", overflow:"hidden" }}>
           <img src={photos[activePhoto]} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", filter:"blur(12px) brightness(0.5)", transform:"scale(1.1)" }} />
           <img src={photos[activePhoto]} alt={item.name} onError={() => { setPhotos(p => p.filter((_,i) => i !== activePhoto)); setActivePhoto(0); }} style={{ position:"relative", width:"100%", height:"100%", objectFit:"contain", opacity:0.95 }} />
           {photos.length > 1 && (
@@ -2384,7 +2384,7 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
                           photoQuery={item.photo}
                           cityName={city.name}
                           neighborhoodName={neighborhood.name}
-                          style={{ width:"100%", height:"220px", background:city.card, overflow:"hidden", position:"relative" }}
+                          style={{ width:"100%", height:"320px", background:city.card, overflow:"hidden", position:"relative" }}
                         />
                         <div style={{ padding:"14px 18px" }}>
                           {item.must && <div style={{ position:"absolute", top:"10px", right:"12px", fontSize:"9px", padding:"2px 7px", background:city.accent, color:"#fff", letterSpacing:"1.5px", textTransform:"uppercase", zIndex:2 }}>Must Visit</div>}
