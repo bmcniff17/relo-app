@@ -8,6 +8,31 @@ import SKYLINES from "./Skylines.jsx";
 // ── Constants ───────────────────────────────────────────────────────────────
 const _RELO_VERSION = "1.0.0";
 
+// ── URL Routing ──────────────────────────────────────────────────────────────
+const slugify = str => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const parseHash = (cities) => {
+  const hash = window.location.hash.replace(/^#\/?/, '');
+  const parts = hash.split('/').filter(Boolean);
+  if (!parts.length) return { screen: 'entry' };
+  if (parts[0] === 'dashboard') return { screen: 'dashboard' };
+  if (parts[0] === 'explore') return { screen: 'explore' };
+  if (parts[0] === 'cost-of-living') return { screen: 'entry', showCoL: true };
+  const city = cities.find(c => c.id === parts[0]);
+  if (city) {
+    const neighborhood = parts[1] ? city.neighborhoods.find(n => slugify(n.name) === parts[1]) : null;
+    return { screen: 'know', cityId: city.id, neighborhoodName: neighborhood?.name || null };
+  }
+  return { screen: 'entry' };
+};
+
+const pushHash = (path) => window.history.pushState(null, '', `${window.location.pathname}#/${path}`);
+
+const copyShareLink = (path) => {
+  const url = `${window.location.origin}${window.location.pathname}#/${path}`;
+  navigator.clipboard.writeText(url).catch(() => {});
+};
+
 
 const NeighborhoodMap = (props) => {
   var {city, scored, selectedNeighborhood, onSelectNeighborhood} = props;
@@ -802,14 +827,14 @@ var {onKnow, onExplore} = props;
 }
 // ── Know Path ─────────────────────────────────────────────────────────────────
 const KnowPath = (props) => {
-var {onBack} = props;
-  const [stage, setStage] = useState("pick");
-  const [cityId, setCityId] = useState(null);
+var {onBack, initialCityId, initialNeighborhood} = props;
+  const [stage, setStage] = useState(initialCityId ? "result" : "pick");
+  const [cityId, setCityId] = useState(initialCityId || null);
   const [quizStep, setQuizStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [activeTab, setActiveTab] = useState("neighborhoods");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState(null);
-  const [neighborhoodPage, setNeighborhoodPage] = useState(null);
+  const [neighborhoodPage, setNeighborhoodPage] = useState(initialNeighborhood || null);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [qInput, setQInput] = useState("");
   const [qSubmitted, setQSubmitted] = useState(false);
@@ -843,7 +868,7 @@ var {onBack} = props;
           {CITIES.map(ct => {
             const Skyline = SKYLINES[ct.id];
             return (
-              <div key={ct.id} onClick={() => { setCityId(ct.id); setStage("quiz"); setQuizStep(0); setAnswers({}); }}
+              <div key={ct.id} onClick={() => { setCityId(ct.id); setStage("quiz"); setQuizStep(0); setAnswers({}); pushHash(ct.id); }}
                 onMouseEnter={() => setHoveredCard(ct.id)} onMouseLeave={() => setHoveredCard(null)}
                 style={{ position: "relative", overflow: "hidden", cursor: "pointer", border: `1px solid ${ct.cardBorder}`, transition: "all 0.25s", minHeight: "210px", display: "flex", flexDirection: "column", justifyContent: "flex-end", background: ct.bg }}
                 onMouseEnterCapture={e => { e.currentTarget.style.borderColor = ct.accent; e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 14px 40px ${ct.accent}33`; }}
@@ -902,7 +927,7 @@ var {onBack} = props;
   // Neighborhood deep dive page
   if (neighborhoodPage && c) {
     const n = c.neighborhoods.find(x => x.name === neighborhoodPage);
-    if (n) return <NeighborhoodPage neighborhood={n} city={c} onBack={() => setNeighborhoodPage(null)} />;
+    if (n) return <NeighborhoodPage neighborhood={n} city={c} onBack={() => { setNeighborhoodPage(null); pushHash(cityId); }} />;
   }
 
   if (stage === "result" && c) return (
@@ -968,7 +993,7 @@ var {onBack} = props;
                   {selectedN.tags.map(t => <span key={t} style={{ fontSize: "10px", padding: "2px 9px", border: `1px solid ${c.accent}44`, color: c.accentLight }}>{t}</span>)}
                 </div>
                 <div style={{ display: "flex", gap: "10px", marginTop: "14px", alignItems: "center" }}>
-                  <button onClick={() => setNeighborhoodPage(selectedN.name)}
+                  <button onClick={() => { setNeighborhoodPage(selectedN.name); pushHash(`${cityId}/${slugify(selectedN.name)}`); }}
                     style={{ background: c.accent, border: "none", color: "#fff", padding: "10px 22px", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", cursor: "pointer", fontFamily: c.bodyFont }}
                   >Full Guide →</button>
                   <button onClick={() => setSelectedNeighborhood(null)} style={{ background: "transparent", border: `1px solid ${c.cardBorder}`, color: c.textMuted, cursor: "pointer", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontFamily: c.bodyFont, padding: "10px 16px" }}>✕ Close</button>
@@ -1006,7 +1031,7 @@ var {onBack} = props;
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px" }}>
                 {scored[0].tags.map(t => <span key={t} style={{ fontSize: "10px", padding: "2px 9px", border: `1px solid ${c.accent}44`, color: c.accentLight }}>{t}</span>)}
               </div>
-              <button onClick={() => setNeighborhoodPage(scored[0].name)}
+              <button onClick={() => { setNeighborhoodPage(scored[0].name); pushHash(`${cityId}/${slugify(scored[0].name)}`); }}
                 style={{ background: c.accent, border: "none", color: "#fff", padding: "12px 28px", fontSize: "11px", letterSpacing: "3px", textTransform: "uppercase", cursor: "pointer", fontFamily: c.bodyFont, transition: "all 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "1"}
@@ -1066,7 +1091,7 @@ var {onBack} = props;
                           🔖 Save
                         </button>
                         <button
-                          onClick={() => setNeighborhoodPage(n.name)}
+                          onClick={() => { setNeighborhoodPage(n.name); pushHash(`${cityId}/${slugify(n.name)}`); }}
                           style={{ background: "transparent", border: `1px solid ${c.accent}55`, color: c.accentLight, padding: "5px 14px", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", cursor: "pointer", fontFamily: c.bodyFont, transition: "all 0.15s", whiteSpace: "nowrap" }}
                           onMouseEnter={e => { e.currentTarget.style.background = `${c.accent}22`; e.currentTarget.style.borderColor = c.accent; }}
                           onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${c.accent}55`; }}
@@ -2153,6 +2178,20 @@ var {apartments, stats, neighborhood, city} = props;
 const SECTION_ICONS = { food:"🍽",bars:"🍸",coffee:"☕",shopping:"🛍",gyms:"💪",landmarks:"📍",parks:"🌿",apartments:"🏠",jobs:"💼",schools:"🏫",community:"💬" };
 const SECTION_LABELS = { food:"Food & Dining",bars:"Bars & Nightlife",coffee:"Coffee",shopping:"Shopping",gyms:"Fitness & Outdoors",landmarks:"Landmarks & Culture",parks:"Parks & Green Space",apartments:"Apartments",jobs:"Job Market",schools:"Schools",community:"Community" };
 
+const ShareButton = ({ path, city }) => {
+  const [copied, setCopied] = useState(false);
+  const share = () => {
+    copyShareLink(path);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button onClick={share} style={{ background:"rgba(0,0,0,0.4)", border:`1px solid ${copied ? city.accent : city.cardBorder}`, color: copied ? city.accent : city.accentLight, cursor:"pointer", fontSize:"10px", letterSpacing:"2px", textTransform:"uppercase", fontFamily:city.bodyFont, padding:"7px 14px", backdropFilter:"blur(8px)", transition:"all 0.2s", display:"flex", alignItems:"center", gap:"6px" }}>
+      {copied ? "✓ Copied!" : "⎘ Share Link"}
+    </button>
+  );
+};
+
 const NeighborhoodPage = (props) => {
 var {neighborhood, city, onBack} = props;
   const [data, setData] = useState(null);
@@ -2309,8 +2348,9 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
         <div style={{ position:"absolute", inset:0, background:city.card }} />
         {Skyline && <Skyline accent={city.accent} opacity={0.25} />}
         <div style={{ position:"absolute", inset:0, background:`linear-gradient(to bottom, ${city.bg}11, ${city.bg}ee)` }} />
-        <div style={{ position:"absolute", top:0, left:0, right:0, padding:"14px 24px", display:"flex", alignItems:"center", gap:"12px", zIndex:10 }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", zIndex:10 }}>
           <button onClick={onBack} style={{ background:"rgba(0,0,0,0.4)", border:`1px solid ${city.cardBorder}`, color:city.accentLight, cursor:"pointer", fontSize:"10px", letterSpacing:"3px", textTransform:"uppercase", fontFamily:city.bodyFont, padding:"7px 14px", backdropFilter:"blur(8px)" }}>← {city.name}</button>
+          <ShareButton path={`${city.id}/${slugify(neighborhood.name)}`} city={city} />
         </div>
         <div style={{ position:"relative", padding:"28px 32px 24px" }}>
           <div style={{ display:"flex", gap:"6px", marginBottom:"8px", flexWrap:"wrap" }}>
@@ -3476,17 +3516,35 @@ var {onShowDashboard, onShowCoL} = props;
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState("entry");
-  const [showCoL, setShowCoL] = useState(false);
+  const [initial] = useState(() => parseHash(CITIES));
+  const [screen, setScreen] = useState(initial.screen);
+  const [showCoL, setShowCoL] = useState(initial.showCoL || false);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPop = () => {
+      const state = parseHash(CITIES);
+      setScreen(state.screen);
+      if (state.showCoL) setShowCoL(true);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const goScreen = (s, path) => { setScreen(s); if (path) pushHash(path); };
+
   return (
     <>
-      <NavBar onShowDashboard={() => setScreen("dashboard")} onShowCoL={() => setShowCoL(true)} />
+      <NavBar
+        onShowDashboard={() => goScreen("dashboard", "dashboard")}
+        onShowCoL={() => setShowCoL(true)}
+      />
       {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
       <div style={{ paddingTop:"52px" }}>
-        {screen === "entry" && <SplitEntry onKnow={() => setScreen("know")} onExplore={() => setScreen("explore")} />}
-        {screen === "know" && <KnowPath onBack={() => setScreen("entry")} />}
-        {screen === "explore" && <ExplorePath onBack={() => setScreen("entry")} />}
-        {screen === "dashboard" && <RelocationDashboard onBack={() => setScreen("entry")} cities={CITIES} />}
+        {screen === "entry"     && <SplitEntry onKnow={() => goScreen("know", "")} onExplore={() => goScreen("explore", "explore")} />}
+        {screen === "know"      && <KnowPath onBack={() => goScreen("entry", "")} initialCityId={initial.cityId} initialNeighborhood={initial.neighborhoodName} />}
+        {screen === "explore"   && <ExplorePath onBack={() => goScreen("entry", "")} />}
+        {screen === "dashboard" && <RelocationDashboard onBack={() => goScreen("entry", "")} cities={CITIES} />}
       </div>
     </>
   );
