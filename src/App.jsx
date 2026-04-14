@@ -34,11 +34,20 @@ const copyShareLink = (path) => {
 };
 
 
+// Convert OSM GeoJSON geometry to Google Maps LatLng arrays
+function osmToLatLng(geometry) {
+  if (!geometry) return [];
+  if (geometry.type === "Polygon") return geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
+  if (geometry.type === "MultiPolygon") return geometry.coordinates[0][0].map(([lng, lat]) => ({ lat, lng }));
+  return [];
+}
+
 const NeighborhoodMap = (props) => {
   var {city, scored, selectedNeighborhood, onSelectNeighborhood} = props;
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+  const outlineRef = useRef([]);
   const [mapError, setMapError] = useState(false);
 
   const maxScore = scored.length ? Math.max(...scored.map(n => n.score)) : 0;
@@ -142,6 +151,55 @@ const NeighborhoodMap = (props) => {
         mapInstance.current.panTo({ lat: n.lat, lng: n.lng });
       }
     });
+  }, [selectedNeighborhood]);
+
+  // Draw neighborhood boundary outline when selection changes
+  useEffect(() => {
+    // Clear previous outline
+    outlineRef.current.forEach(p => p.setMap(null));
+    outlineRef.current = [];
+
+    if (!selectedNeighborhood || !mapInstance.current || !window.google?.maps) return;
+
+    const n = scored.find(x => x.name === selectedNeighborhood);
+    if (!n) return;
+
+    const query = encodeURIComponent(`${n.name}, ${city.name}`);
+    fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&polygon_geojson=1&limit=1&addressdetails=0`, {
+      headers: { "Accept-Language": "en" }
+    })
+      .then(r => r.json())
+      .then(results => {
+        if (!results?.[0]?.geojson) return;
+        const coords = osmToLatLng(results[0].geojson);
+        if (coords.length < 3) return;
+        outlineRef.current.forEach(p => p.setMap(null));
+        outlineRef.current = [];
+        // Glow layer (wider, more transparent)
+        outlineRef.current.push(new window.google.maps.Polygon({
+          paths: coords,
+          strokeColor: city.accent,
+          strokeOpacity: 0.35,
+          strokeWeight: 8,
+          fillOpacity: 0,
+          map: mapInstance.current,
+        }));
+        // Sharp inner border
+        outlineRef.current.push(new window.google.maps.Polygon({
+          paths: coords,
+          strokeColor: city.accent,
+          strokeOpacity: 0.9,
+          strokeWeight: 2.5,
+          fillColor: city.accent,
+          fillOpacity: 0.07,
+          map: mapInstance.current,
+        }));
+        // Fit map to the outline
+        const bounds = new window.google.maps.LatLngBounds();
+        coords.forEach(p => bounds.extend(p));
+        mapInstance.current.fitBounds(bounds, 80);
+      })
+      .catch(() => {});
   }, [selectedNeighborhood]);
 
   if (mapError) {
@@ -1386,18 +1444,6 @@ var {neighborhood, city, selectedPlace} = props;
   const selectedMarkerRef = useRef(null);
   const outlineRef = useRef([]);
   const [mapError, setMapError] = useState(false);
-
-  // Convert OSM geometry to Google Maps LatLng arrays
-  function osmToLatLng(geometry) {
-    if (!geometry) return [];
-    if (geometry.type === "Polygon") {
-      return geometry.coordinates[0].map(([lng, lat]) => ({ lat, lng }));
-    }
-    if (geometry.type === "MultiPolygon") {
-      return geometry.coordinates[0][0].map(([lng, lat]) => ({ lat, lng }));
-    }
-    return [];
-  }
 
   useEffect(() => {
     loadGoogleMaps()
