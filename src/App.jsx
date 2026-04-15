@@ -3378,6 +3378,231 @@ async function loadAllUserData(token) {
   } catch { return null; }
 }
 
+async function loadProfile(token) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  try {
+    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    const res = await fetch(SUPABASE_URL + "/rest/v1/profiles?id=eq." + user.id + "&select=*", {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const rows = await res.json();
+    return rows?.[0] || { id: user.id, email: user.email, created_at: user.created_at };
+  } catch { return null; }
+}
+
+async function updateProfile(token, data) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  try {
+    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    await fetch(SUPABASE_URL + "/rest/v1/profiles?id=eq." + user.id, {
+      method: "PATCH",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify({ ...data, updated_at: new Date().toISOString() })
+    });
+  } catch(e) { console.error("Profile update error:", e); }
+}
+
+async function deleteAccount(token) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  // Delete user data first, then the account via admin API isn't accessible client-side
+  // Instead we clear all local data and revoke the session
+  try {
+    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    const user = await userRes.json();
+    await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id, {
+      method: "DELETE",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+    await fetch(SUPABASE_URL + "/auth/v1/logout", {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
+    });
+  } catch(e) { console.error("Delete error:", e); }
+}
+
+// ── Profile Page ─────────────────────────────────────────────────────────────
+const ProfilePage = ({ session, onClose, onLogout }) => {
+  const [profile, setProfile] = useState(null);
+  const [savedData, setSavedData] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    if (!session?.token) return;
+    loadProfile(session.token).then(p => { setProfile(p); setFullName(p?.full_name || ""); });
+    loadAllUserData(session.token).then(d => setSavedData(d));
+  }, [session?.token]);
+
+  const save = async () => {
+    setSaving(true);
+    await updateProfile(session.token, { full_name: fullName });
+    setProfile(prev => ({ ...prev, full_name: fullName }));
+    setEditing(false); setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteAccount(session.token);
+    localStorage.removeItem("relo_token");
+    onLogout();
+  };
+
+  const savedNeighborhoods = savedData?.savedNeighborhoods || [];
+  const savedApartments = savedData?.savedApartments || [];
+  const moveCity = savedData?.moveCity || "";
+  const memberSince = profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "—";
+  const initials = (profile?.full_name || session?.user?.email || "?")[0].toUpperCase();
+
+  const tabStyle = (t) => ({
+    background: "transparent", border: "none", borderBottom: activeTab === t ? "2px solid #5b8db8" : "2px solid transparent",
+    color: activeTab === t ? "#fff" : "rgba(255,255,255,0.4)", padding: "10px 18px", cursor: "pointer",
+    fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px", transition: "all 0.2s"
+  });
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:400, background:"rgba(0,0,0,0.88)", display:"flex", alignItems:"center", justifyContent:"center", padding:"20px" }} onClick={onClose}>
+      <div style={{ background:"#0a0c14", border:"1px solid #2a2a3a", width:"100%", maxWidth:"560px", maxHeight:"90vh", overflowY:"auto" }} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding:"28px 28px 0", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+          <div>
+            <div style={{ fontSize:"9px", letterSpacing:"3px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"4px" }}>Relo Account</div>
+            <div style={{ fontSize:"22px", fontFamily:"Georgia,serif", color:"#fff" }}>My Profile</div>
+          </div>
+          <button onClick={onClose} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.4)", width:"32px", height:"32px", borderRadius:"50%", cursor:"pointer", fontSize:"16px" }}>×</button>
+        </div>
+
+        {/* Avatar + Name */}
+        <div style={{ padding:"24px 28px", display:"flex", alignItems:"center", gap:"18px", borderBottom:"1px solid #1a1a2a" }}>
+          <div style={{ width:"64px", height:"64px", borderRadius:"50%", background:"linear-gradient(135deg, #5b8db8, #3a6a96)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"26px", fontFamily:"Georgia,serif", color:"#fff", flexShrink:0 }}>{initials}</div>
+          <div style={{ flex:1, minWidth:0 }}>
+            {editing ? (
+              <input value={fullName} onChange={e => setFullName(e.target.value)} onKeyDown={e => e.key==="Enter" && save()}
+                placeholder="Your name"
+                style={{ background:"#111", border:"1px solid #2a2a3a", color:"#fff", padding:"8px 12px", fontFamily:"Georgia,serif", fontSize:"15px", width:"100%", boxSizing:"border-box", outline:"none" }} />
+            ) : (
+              <div style={{ fontSize:"18px", fontFamily:"Georgia,serif", color:"#fff", marginBottom:"3px" }}>{profile?.full_name || "Relo User"}</div>
+            )}
+            <div style={{ fontSize:"12px", color:"rgba(255,255,255,0.4)", overflow:"hidden", textOverflow:"ellipsis" }}>{session?.user?.email}</div>
+            <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.25)", marginTop:"2px" }}>Member since {memberSince}</div>
+          </div>
+          {editing ? (
+            <div style={{ display:"flex", gap:"8px", flexShrink:0 }}>
+              <button onClick={save} style={{ background:"#5b8db8", border:"none", color:"#fff", padding:"8px 16px", cursor:"pointer", fontSize:"11px", fontFamily:"Georgia,serif" }}>{saving ? "Saving…" : "Save"}</button>
+              <button onClick={() => { setEditing(false); setFullName(profile?.full_name || ""); }} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.4)", padding:"8px 14px", cursor:"pointer", fontSize:"11px" }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setEditing(true)} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.45)", padding:"8px 16px", cursor:"pointer", fontSize:"11px", letterSpacing:"1px", fontFamily:"Georgia,serif", flexShrink:0 }}>Edit</button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display:"flex", borderBottom:"1px solid #1a1a2a", padding:"0 16px" }}>
+          {["overview","saved","settings"].map(t => <button key={t} style={tabStyle(t)} onClick={() => setActiveTab(t)}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+        </div>
+
+        <div style={{ padding:"24px 28px" }}>
+          {/* Overview Tab */}
+          {activeTab === "overview" && (
+            <>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"24px" }}>
+                {[
+                  { label:"Moving To", value: moveCity || "Not set", icon:"📍" },
+                  { label:"Saved Neighborhoods", value: Array.isArray(savedNeighborhoods) ? savedNeighborhoods.length : 0, icon:"🏘" },
+                  { label:"Saved Apartments", value: Array.isArray(savedApartments) ? savedApartments.length : 0, icon:"🏠" },
+                ].map(s => (
+                  <div key={s.label} style={{ padding:"16px 14px", background:"#111", border:"1px solid #1a1a2a", textAlign:"center" }}>
+                    <div style={{ fontSize:"20px", marginBottom:"6px" }}>{s.icon}</div>
+                    <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>{s.label}</div>
+                    <div style={{ fontSize:"17px", fontFamily:"Georgia,serif", color:"#fff" }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+              {Array.isArray(savedNeighborhoods) && savedNeighborhoods.length > 0 && (
+                <div>
+                  <div style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"10px" }}>Recent Neighborhoods</div>
+                  {savedNeighborhoods.slice(0,3).map((n,i) => (
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"10px 14px", background:"#111", border:"1px solid #1a1a2a", marginBottom:"4px" }}>
+                      <span style={{ fontSize:"13px", color:"#fff", fontFamily:"Georgia,serif" }}>{n.name}</span>
+                      <span style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)" }}>{n.city}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Saved Tab */}
+          {activeTab === "saved" && (
+            <>
+              <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"12px" }}>Saved Neighborhoods</div>
+              {Array.isArray(savedNeighborhoods) && savedNeighborhoods.length > 0 ? savedNeighborhoods.map((n,i) => (
+                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 14px", background:"#111", border:"1px solid #1a1a2a", marginBottom:"4px" }}>
+                  <div>
+                    <div style={{ fontSize:"13px", color:"#fff", fontFamily:"Georgia,serif" }}>{n.name}</div>
+                    <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)" }}>{n.city}</div>
+                  </div>
+                  <span style={{ fontSize:"10px", padding:"3px 8px", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.35)" }}>{n.tags?.[0]}</span>
+                </div>
+              )) : <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.3)", fontStyle:"italic", padding:"20px 0" }}>No saved neighborhoods yet.</div>}
+
+              <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", margin:"20px 0 12px" }}>Saved Apartments</div>
+              {Array.isArray(savedApartments) && savedApartments.length > 0 ? savedApartments.map((a,i) => (
+                <div key={i} style={{ padding:"12px 14px", background:"#111", border:"1px solid #1a1a2a", marginBottom:"4px" }}>
+                  <div style={{ fontSize:"13px", color:"#fff", fontFamily:"Georgia,serif" }}>{a.name}</div>
+                  <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.35)" }}>{a.rent} · {a.beds}BR</div>
+                </div>
+              )) : <div style={{ fontSize:"13px", color:"rgba(255,255,255,0.3)", fontStyle:"italic", padding:"20px 0" }}>No saved apartments yet.</div>}
+            </>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <>
+              <div style={{ padding:"16px", background:"#111", border:"1px solid #1a1a2a", marginBottom:"12px" }}>
+                <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>Email</div>
+                <div style={{ fontSize:"14px", color:"rgba(255,255,255,0.7)" }}>{session?.user?.email}</div>
+              </div>
+              <div style={{ padding:"16px", background:"#111", border:"1px solid #1a1a2a", marginBottom:"24px" }}>
+                <div style={{ fontSize:"11px", letterSpacing:"2px", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"6px" }}>Account Created</div>
+                <div style={{ fontSize:"14px", color:"rgba(255,255,255,0.7)" }}>{memberSince}</div>
+              </div>
+              <div style={{ borderTop:"1px solid #1a1a2a", paddingTop:"20px" }}>
+                {!confirmDelete ? (
+                  <button onClick={() => setConfirmDelete(true)} style={{ background:"transparent", border:"1px solid #f4433644", color:"#f4433688", padding:"10px 20px", cursor:"pointer", fontSize:"11px", letterSpacing:"1px", fontFamily:"Georgia,serif", width:"100%" }}>Delete Account</button>
+                ) : (
+                  <div style={{ background:"#f4433611", border:"1px solid #f4433644", padding:"16px" }}>
+                    <div style={{ fontSize:"13px", color:"#f44336", marginBottom:"12px" }}>This will permanently delete your account and all saved data. Are you sure?</div>
+                    <div style={{ display:"flex", gap:"10px" }}>
+                      <button onClick={handleDelete} style={{ background:"#f44336", border:"none", color:"#fff", padding:"9px 20px", cursor:"pointer", fontSize:"11px", fontFamily:"Georgia,serif" }}>Yes, delete everything</button>
+                      <button onClick={() => setConfirmDelete(false)} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.5)", padding:"9px 16px", cursor:"pointer", fontSize:"11px" }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding:"16px 28px 24px", borderTop:"1px solid #1a1a2a", display:"flex", justifyContent:"flex-end" }}>
+          <button onClick={() => { onLogout(); onClose(); }} style={{ background:"transparent", border:"1px solid #2a2a3a", color:"rgba(255,255,255,0.45)", padding:"9px 20px", cursor:"pointer", fontSize:"11px", letterSpacing:"1px", fontFamily:"Georgia,serif" }}>Log Out</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Auth Modal ────────────────────────────────────────────────────────────────
 const AuthModal = (props) => {
 var {onAuth, onClose} = props;
@@ -3453,14 +3678,14 @@ var {onAuth, onClose} = props;
 
 // ── Global Nav Bar ────────────────────────────────────────────────────────────
 const NavBar = (props) => {
-var {onShowDashboard, onShowCoL} = props;
+var {onShowDashboard, onShowCoL, onShowProfile, onSessionChange} = props;
   const [session, setSession] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    getSession().then(s => setSession(s));
+    getSession().then(s => { setSession(s); onSessionChange?.(s); });
   }, []);
 
   useEffect(() => {
@@ -3469,8 +3694,8 @@ var {onShowDashboard, onShowCoL} = props;
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleAuth = (s) => { setSession(s); setShowAuth(false); };
-  const handleLogout = () => { localStorage.removeItem("relo_token"); setSession(null); setShowDropdown(false); };
+  const handleAuth = (s) => { setSession(s); setShowAuth(false); onSessionChange?.(s); };
+  const handleLogout = () => { localStorage.removeItem("relo_token"); setSession(null); setShowDropdown(false); onSessionChange?.(null); };
   const initials = session?.user?.email ? session.user.email[0].toUpperCase() : "?";
 
   return (
@@ -3530,6 +3755,12 @@ var {onShowDashboard, onShowCoL} = props;
                 <div style={{ fontSize:"11px", color:"rgba(255,255,255,0.4)", marginBottom:"2px" }}>Signed in as</div>
                 <div style={{ fontSize:"13px", color:"#fff", fontFamily:"Georgia,serif", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{session.user.email}</div>
               </div>
+              <button onClick={() => { setShowDropdown(false); onShowProfile(); }}
+                style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
+                onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
+                onMouseLeave={e => e.currentTarget.style.background="transparent"}>
+                👤 My Profile
+              </button>
               <button onClick={() => { setShowDropdown(false); onShowDashboard(); }}
                 style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #1a1a2a", color:"rgba(255,255,255,0.7)", padding:"12px 16px", cursor:"pointer", fontFamily:"Georgia,serif", fontSize:"13px", textAlign:"left", display:"flex", alignItems:"center", gap:"10px" }}
                 onMouseEnter={e => e.currentTarget.style.background="#1a1a2a"}
@@ -3561,6 +3792,8 @@ export default function App() {
   const [initial] = useState(() => parseHash(CITIES));
   const [screen, setScreen] = useState(initial.screen);
   const [showCoL, setShowCoL] = useState(initial.showCoL || false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [appSession, setAppSession] = useState(null);
 
   // Handle browser back/forward
   useEffect(() => {
@@ -3580,8 +3813,11 @@ export default function App() {
       <NavBar
         onShowDashboard={() => goScreen("dashboard", "dashboard")}
         onShowCoL={() => setShowCoL(true)}
+        onShowProfile={() => setShowProfile(true)}
+        onSessionChange={setAppSession}
       />
       {showCoL && <CostOfLivingTool onClose={() => setShowCoL(false)} cities={CITIES} />}
+      {showProfile && appSession && <ProfilePage session={appSession} onClose={() => setShowProfile(false)} onLogout={() => { setAppSession(null); setShowProfile(false); }} />}
       <div style={{ paddingTop:"52px" }}>
         {screen === "entry"     && <SplitEntry onKnow={() => goScreen("know", "")} onExplore={() => goScreen("explore", "explore")} />}
         {screen === "know"      && <KnowPath onBack={() => goScreen("entry", "")} initialCityId={initial.cityId} initialNeighborhood={initial.neighborhoodName} />}
