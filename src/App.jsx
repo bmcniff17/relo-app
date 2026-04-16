@@ -3621,12 +3621,26 @@ var {onAuth, onClose} = props;
       const endpoint = mode === "login" ? "token?grant_type=password" : "signup";
       const data = await sbAuth(endpoint, { email, password });
       if (!data) throw new Error("No response from server");
-      // Both signup and login return an access_token now that email confirm is off
       const token = data.access_token;
-      if (!token) throw new Error("Login failed — please try again");
+      if (!token) {
+        // Signup succeeded but email confirmation is required before they can log in
+        if (mode === "signup") {
+          setSuccess("Account created! Check your email for a confirmation link, then log in.");
+          setLoading(false);
+          return;
+        }
+        throw new Error("Login failed — please try again");
+      }
       localStorage.setItem("relo_token", token);
-      onAuth({ user: data.user, token });
-    } catch(e) { setError(e.message || "Something went wrong"); }
+      onAuth({ user: data.user || { email }, token });
+    } catch(e) {
+      const msg = e.message || "Something went wrong";
+      // Surface clearer messages for common Supabase errors
+      if (msg.includes("Invalid login credentials")) setError("Incorrect email or password.");
+      else if (msg.includes("Email not confirmed")) setError("Please confirm your email before logging in.");
+      else if (msg.includes("User already registered")) setError("An account with this email already exists. Try logging in.");
+      else setError(msg);
+    }
     setLoading(false);
   };
 
