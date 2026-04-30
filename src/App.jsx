@@ -71,7 +71,11 @@ const NeighborhoodMap = (props) => {
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const outlineRef = useRef([]);
+  const selectedNeighborhoodRef = useRef(selectedNeighborhood);
   const [mapError, setMapError] = useState(false);
+
+  // Keep ref in sync so marker click handlers always have the latest value
+  useEffect(() => { selectedNeighborhoodRef.current = selectedNeighborhood; }, [selectedNeighborhood]);
 
   const maxScore = scored.length ? Math.max(...scored.map(n => n.score)) : 0;
   const minScore = scored.length ? Math.min(...scored.map(n => n.score)) : 0;
@@ -140,7 +144,7 @@ const NeighborhoodMap = (props) => {
           });
 
           marker.addListener("click", () => {
-            onSelectNeighborhood(selectedNeighborhood === n.name ? null : n.name);
+            onSelectNeighborhood(selectedNeighborhoodRef.current === n.name ? null : n.name);
           });
 
           return { marker, name: n.name };
@@ -903,6 +907,28 @@ var {onBack, initialCityId, initialNeighborhood} = props;
   const [qInput, setQInput] = useState("");
   const [qSubmitted, setQSubmitted] = useState(false);
   const v = useMount();
+
+  // Sync internal state when user navigates with browser back/forward
+  useEffect(() => {
+    const onPop = () => {
+      const state = parseHash(CITIES);
+      if (state.screen !== 'know') return;
+      if (state.neighborhoodName) {
+        if (state.cityId) setCityId(state.cityId);
+        setNeighborhoodPage(state.neighborhoodName);
+      } else if (state.cityId) {
+        setCityId(state.cityId);
+        setNeighborhoodPage(null);
+        setStage('result');
+        setSelectedNeighborhood(null);
+      } else {
+        setNeighborhoodPage(null);
+        setStage('pick');
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const c = cityId ? CITIES.find(x => x.id === cityId) : null;
 
   function selectAnswer(qid, val) {
@@ -2284,10 +2310,11 @@ var {neighborhood, city, onBack} = props;
   useEffect(() => {
     setRealStats({});
 
-    // Walk Score: real walkability, transit, bike scores
-    if (WALKSCORE_KEY && neighborhood.lat && neighborhood.lng) {
+    // Walk Score: real walkability, transit, bike scores (via CORS proxy for browser access)
+    if (WALKSCORE_KEY && WALKSCORE_KEY !== 'YOUR_WALKSCORE_KEY_HERE' && neighborhood.lat && neighborhood.lng) {
       const addr = encodeURIComponent(`${neighborhood.name}, ${city.name}`);
-      fetch(`https://api.walkscore.com/score?format=json&address=${addr}&lat=${neighborhood.lat}&lon=${neighborhood.lng}&transit=1&bike=1&wsapikey=${WALKSCORE_KEY}`)
+      const wsUrl = encodeURIComponent(`https://api.walkscore.com/score?format=json&address=${addr}&lat=${neighborhood.lat}&lon=${neighborhood.lng}&transit=1&bike=1&wsapikey=${WALKSCORE_KEY}`);
+      fetch(`https://corsproxy.io/?${wsUrl}`)
         .then(r => r.json())
         .then(d => {
           const updates = {};
@@ -2443,19 +2470,22 @@ Include 8 items per category. For apartments, generate 8 realistic listings with
       {data?.stats && (
         <div style={{ background:city.card, borderTop:`1px solid ${city.cardBorder}`, borderBottom:`1px solid ${city.cardBorder}`, padding:"14px 32px", display:"flex", gap:"28px", overflowX:"auto", flexWrap:"wrap" }}>
           {[
-            {l:"Walk Score",   v:realStats.walkScore    ?? data.stats.walkScore,    max:100, live:realStats._walkscoreLive},
-            {l:"Transit",      v:realStats.transitScore ?? data.stats.transitScore, max:100, live:realStats._walkscoreLive},
-            {l:"Bike Score",   v:realStats.bikeScore    ?? data.stats.bikeScore,    max:100, live:realStats._walkscoreLive},
-            {l:"Safety Score", v:data.stats.safetyScore, max:100, safety:true},
-            {l:"1BR Rent",     v:realStats.avgRent1br   ?? data.stats.avgRent1br,   live:realStats._rentLive},
-            {l:"2BR Rent",     v:realStats.avgRent2br   ?? data.stats.avgRent2br,   live:realStats._rentLive},
+            {l:"Walk Score",   v:realStats.walkScore    ?? data.stats.walkScore,    max:100, live:realStats._walkscoreLive, est:!realStats._walkscoreLive},
+            {l:"Transit",      v:realStats.transitScore ?? data.stats.transitScore, max:100, live:realStats._walkscoreLive, est:!realStats._walkscoreLive},
+            {l:"Bike Score",   v:realStats.bikeScore    ?? data.stats.bikeScore,    max:100, live:realStats._walkscoreLive, est:!realStats._walkscoreLive},
+            {l:"Safety Score", v:data.stats.safetyScore, max:100, safety:true, est:true},
+            {l:"1BR Rent",     v:realStats.avgRent1br   ?? data.stats.avgRent1br,   live:realStats._rentLive, est:!realStats._rentLive},
+            {l:"2BR Rent",     v:realStats.avgRent2br   ?? data.stats.avgRent2br,   live:realStats._rentLive, est:!realStats._rentLive},
           ].map(s => {
             const safetyColor = s.safety ? (s.v >= 75 ? "#4caf50" : s.v >= 50 ? "#ff9800" : "#f44336") : city.accent;
             return (
               <div key={s.l} style={{ minWidth:"72px" }}>
                 <div style={{ display:"flex", alignItems:"center", gap:"5px", marginBottom:"4px" }}>
                   <span style={{ fontSize:"9px", letterSpacing:"2px", textTransform:"uppercase", color:city.textMuted }}>{s.l}</span>
-                  {s.live && <span style={{ fontSize:"8px", padding:"1px 4px", background:"#4caf5022", color:"#4caf50", border:"1px solid #4caf5044", letterSpacing:"1px" }}>LIVE</span>}
+                  {s.live
+                    ? <span style={{ fontSize:"8px", padding:"1px 4px", background:"#4caf5022", color:"#4caf50", border:"1px solid #4caf5044", letterSpacing:"1px" }}>LIVE</span>
+                    : s.est && <span style={{ fontSize:"8px", padding:"1px 4px", background:"rgba(255,255,255,0.04)", color:city.textMuted, border:`1px solid ${city.cardBorder}`, letterSpacing:"1px" }}>EST.</span>
+                  }
                 </div>
                 {s.max
                   ? <div>
