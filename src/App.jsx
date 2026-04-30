@@ -1513,7 +1513,7 @@ var {neighborhood, city, selectedPlace} = props;
       .catch(() => setMapError(true));
   }, [neighborhood.lat, neighborhood.lng]);
 
-  // Drop a pin when a place is selected via geocoding
+  // Drop a pin when a place is selected via Places text search
   useEffect(() => {
     if (!mapInstance.current || !window.google?.maps) return;
     if (selectedMarkerRef.current) {
@@ -1525,10 +1525,11 @@ var {neighborhood, city, selectedPlace} = props;
       mapInstance.current.setZoom(14);
       return;
     }
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ address: `${selectedPlace.name}, ${neighborhood.name}, ${city.name}` }, (results, status) => {
-      if (status !== "OK" || !results?.[0]?.geometry) return;
-      const pos = results[0].geometry.location;
+
+    let cancelled = false;
+
+    const dropPin = (pos) => {
+      if (cancelled || !mapInstance.current) return;
       mapInstance.current.setCenter(pos);
       mapInstance.current.setZoom(16);
       selectedMarkerRef.current = new window.google.maps.Marker({
@@ -1546,10 +1547,42 @@ var {neighborhood, city, selectedPlace} = props;
         },
       });
       const iw = new window.google.maps.InfoWindow({
-        content: "<div style=\"font-family:sans-serif;padding:4px;color:#111\"><strong>" + selectedPlace.name + "</strong></div>",
+        content: `<div style="font-family:sans-serif;padding:4px 6px;color:#111"><strong>${selectedPlace.name}</strong></div>`,
       });
       iw.open(mapInstance.current, selectedMarkerRef.current);
-    });
+    };
+
+    window.google.maps.importLibrary("places").then(({ Place }) => {
+      if (cancelled) return;
+      Place.searchByText({
+        textQuery: `${selectedPlace.name} ${neighborhood.name} ${city.name}`,
+        fields: ["location"],
+        maxResultCount: 1,
+        locationBias: { lat: neighborhood.lat, lng: neighborhood.lng },
+      }).then(({ places }) => {
+        if (cancelled) return;
+        const loc = places?.[0]?.location;
+        if (loc) {
+          dropPin(loc);
+        } else {
+          // Fallback: geocode by name
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ address: `${selectedPlace.name}, ${neighborhood.name}, ${city.name}` }, (results, status) => {
+            if (cancelled || status !== "OK" || !results?.[0]?.geometry) return;
+            dropPin(results[0].geometry.location);
+          });
+        }
+      }).catch(() => {
+        if (cancelled) return;
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: `${selectedPlace.name}, ${neighborhood.name}, ${city.name}` }, (results, status) => {
+          if (cancelled || status !== "OK" || !results?.[0]?.geometry) return;
+          dropPin(results[0].geometry.location);
+        });
+      });
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
   }, [selectedPlace]);
 
   if (mapError) return null;
