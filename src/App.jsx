@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 // ── Fonts loaded via index.html ──────────────────────────────────────────────
 
@@ -3377,117 +3378,68 @@ var {onBack, cities} = props;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
-async function sbAuth(endpoint, body) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const res = await fetch(SUPABASE_URL + "/auth/v1/" + endpoint, {
-    method: "POST",
-    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (data.error || data.error_description) throw new Error(data.error_description || data.error || data.msg);
-  return data;
-}
+const supabase = (SUPABASE_URL && SUPABASE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 async function getSession() {
+  if (!supabase) return null;
   try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-    const token = localStorage.getItem("relo_token");
-    if (!token) return null;
-    const res = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    if (!res.ok) { localStorage.removeItem("relo_token"); return null; }
-    const user = await res.json();
-    return { user, token };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    return { user: session.user, token: session.access_token };
   } catch { return null; }
 }
 
-async function saveUserData(token, key, value) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+async function saveUserData(_token, key, value) {
+  if (!supabase) return;
   try {
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const user = await userRes.json();
-    const checkRes = await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id + "&key=eq." + encodeURIComponent(key) + "&select=id", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const existing = await checkRes.json();
-    const method = existing?.length > 0 ? "PATCH" : "POST";
-    const url = existing?.length > 0
-      ? SUPABASE_URL + "/rest/v1/saved_data?id=eq." + existing[0].id
-      : SUPABASE_URL + "/rest/v1/saved_data";
-    await fetch(url, {
-      method,
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify(existing?.length > 0 ? { value, updated_at: new Date().toISOString() } : { user_id: user.id, key, value })
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("saved_data").upsert(
+      { user_id: user.id, key, value, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,key" }
+    );
   } catch(e) { console.error("Save error:", e); }
 }
 
-async function loadAllUserData(token) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+async function loadAllUserData(_token) {
+  if (!supabase) return null;
   try {
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const user = await userRes.json();
-    const res = await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id + "&select=key,value", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const rows = await res.json();
-    return rows.reduce((acc, r) => ({ ...acc, [r.key]: r.value }), {});
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: rows } = await supabase.from("saved_data").select("key,value").eq("user_id", user.id);
+    return (rows || []).reduce((acc, r) => ({ ...acc, [r.key]: r.value }), {});
   } catch { return null; }
 }
 
-async function loadProfile(token) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+async function loadProfile(_token) {
+  if (!supabase) return null;
   try {
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const user = await userRes.json();
-    const res = await fetch(SUPABASE_URL + "/rest/v1/profiles?id=eq." + user.id + "&select=*", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const rows = await res.json();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: rows } = await supabase.from("profiles").select("*").eq("id", user.id);
     return rows?.[0] || { id: user.id, email: user.email, created_at: user.created_at };
   } catch { return null; }
 }
 
-async function updateProfile(token, data) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+async function updateProfile(_token, data) {
+  if (!supabase) return;
   try {
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const user = await userRes.json();
-    await fetch(SUPABASE_URL + "/rest/v1/profiles?id=eq." + user.id, {
-      method: "PATCH",
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify({ ...data, updated_at: new Date().toISOString() })
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").upsert({ id: user.id, ...data, updated_at: new Date().toISOString() });
   } catch(e) { console.error("Profile update error:", e); }
 }
 
-async function deleteAccount(token) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return;
-  // Delete user data first, then the account via admin API isn't accessible client-side
-  // Instead we clear all local data and revoke the session
+async function deleteAccount(_token) {
+  if (!supabase) return;
   try {
-    const userRes = await fetch(SUPABASE_URL + "/auth/v1/user", {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    const user = await userRes.json();
-    await fetch(SUPABASE_URL + "/rest/v1/saved_data?user_id=eq." + user.id, {
-      method: "DELETE",
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
-    await fetch(SUPABASE_URL + "/auth/v1/logout", {
-      method: "POST",
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}` }
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("saved_data").delete().eq("user_id", user.id);
+    }
+    await supabase.auth.signOut();
   } catch(e) { console.error("Delete error:", e); }
 }
 
@@ -3677,28 +3629,27 @@ var {onAuth, onClose} = props;
   const [success, setSuccess] = useState("");
 
   const handle = async () => {
+    if (!supabase) { setError("Auth not configured — check VITE_SUPABASE_URL and VITE_SUPABASE_KEY."); return; }
     if (!email || !password) { setError("Please fill in all fields"); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
     setLoading(true); setError(""); setSuccess("");
     try {
-      const endpoint = mode === "login" ? "token?grant_type=password" : "signup";
-      const data = await sbAuth(endpoint, { email, password });
-      if (!data) throw new Error("No response from server");
-      const token = data.access_token;
-      if (!token) {
-        // Signup succeeded but email confirmation is required before they can log in
-        if (mode === "signup") {
+      if (mode === "signup") {
+        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        if (err) throw err;
+        if (!data.session) {
           setSuccess("Account created! Check your email for a confirmation link, then log in.");
           setLoading(false);
           return;
         }
-        throw new Error("Login failed — please try again");
+        onAuth({ user: data.user, token: data.session.access_token });
+      } else {
+        const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
+        onAuth({ user: data.user, token: data.session.access_token });
       }
-      localStorage.setItem("relo_token", token);
-      onAuth({ user: data.user || { email }, token });
     } catch(e) {
       const msg = e.message || "Something went wrong";
-      // Surface clearer messages for common Supabase errors
       if (msg.includes("Invalid login credentials")) setError("Incorrect email or password.");
       else if (msg.includes("Email not confirmed")) setError("Please confirm your email before logging in.");
       else if (msg.includes("User already registered")) setError("An account with this email already exists. Try logging in.");
@@ -3772,7 +3723,7 @@ var {onShowDashboard, onShowCoL, onShowProfile, onSessionChange} = props;
   }, []);
 
   const handleAuth = (s) => { setSession(s); setShowAuth(false); onSessionChange?.(s); };
-  const handleLogout = () => { localStorage.removeItem("relo_token"); setSession(null); setShowDropdown(false); onSessionChange?.(null); };
+  const handleLogout = () => { supabase?.auth.signOut(); setSession(null); setShowDropdown(false); onSessionChange?.(null); };
   const initials = session?.user?.email ? session.user.email[0].toUpperCase() : "?";
 
   return (
