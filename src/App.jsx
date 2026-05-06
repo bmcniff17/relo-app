@@ -3821,8 +3821,57 @@ var {onAuth, onClose} = props;
 // ── Corporate Page ────────────────────────────────────────────────────────────
 const EXPENSE_CATEGORIES = ["Moving & Transport", "Housing Deposit", "Flights", "Temp Housing", "Storage", "Meals & Per Diem", "Misc"];
 
+const SUGGESTED_EXPENSES = [
+  { category: "Moving & Transport", label: "Moving Company", icon: "🚚", typical: "$2,000–$5,000" },
+  { category: "Flights", label: "Flights", icon: "✈️", typical: "$300–$800" },
+  { category: "Housing Deposit", label: "Security Deposit", icon: "🏠", typical: "1–2 months rent" },
+  { category: "Temp Housing", label: "Temp Housing", icon: "🏨", typical: "$80–$200/night" },
+  { category: "Moving & Transport", label: "Car Shipping", icon: "🚗", typical: "$800–$2,500" },
+  { category: "Storage", label: "Storage Unit", icon: "📦", typical: "$100–$300/mo" },
+  { category: "Meals & Per Diem", label: "Per Diem", icon: "🍽", typical: "$50–$100/day" },
+  { category: "Misc", label: "Miscellaneous", icon: "📋", typical: "Varies" },
+];
+
+const CAT_COLORS = ["#4A7FB5","#2E7D6B","#D95F2B","#8B5CF6","#EC4899","#14B8A6","#F59E0B","#64748B"];
+
 const statusColor = (s) => s === "approved" ? "#4caf50" : s === "flagged" ? "#f44336" : "#f5a623";
 const statusLabel = (s) => s === "approved" ? "Approved" : s === "flagged" ? "Flagged" : "Pending";
+
+const exportCSV = (expenses, pkgName) => {
+  const rows = [["Date","Category","Description","Amount","Status"]];
+  expenses.forEach(e => rows.push([
+    new Date(e.created_at).toLocaleDateString(),
+    e.category, e.description || "",
+    parseFloat(e.amount).toFixed(2), e.status
+  ]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv],{type:"text/csv"})), download: `${pkgName}-expenses.csv` });
+  a.click();
+};
+
+const CategoryBar = ({ expenses, max }) => {
+  const byCategory = EXPENSE_CATEGORIES.map((cat, i) => ({
+    cat, color: CAT_COLORS[i % CAT_COLORS.length],
+    total: expenses.filter(e => e.category === cat).reduce((s,e) => s + parseFloat(e.amount), 0)
+  })).filter(x => x.total > 0).sort((a,b) => b.total - a.total);
+  if (!byCategory.length) return null;
+  return (
+    <div style={{ marginTop: "16px" }}>
+      <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "12px" }}>By Category</div>
+      {byCategory.map(({ cat, color, total }) => (
+        <div key={cat} style={{ marginBottom: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+            <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}>{cat}</span>
+            <span style={{ fontSize: "11px", color, fontFamily: "Georgia,serif" }}>${total.toLocaleString()}</span>
+          </div>
+          <div style={{ height: "4px", background: "#1a1a2a", borderRadius: "2px" }}>
+            <div style={{ width: `${Math.min(100,(total/max)*100)}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.6s ease" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const CorporatePage = ({ onBack, session }) => {
   const [role, setRole] = useState("employee");
@@ -3839,6 +3888,7 @@ const CorporatePage = ({ onBack, session }) => {
   const [pkgSaving, setPkgSaving] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [pkgExpenses, setPkgExpenses] = useState([]);
+  const [pkgExpFilter, setPkgExpFilter] = useState("all");
 
   // ── Employee state
   const [linkedPkg, setLinkedPkg] = useState(null);
@@ -3855,6 +3905,7 @@ const CorporatePage = ({ onBack, session }) => {
   const [expFile, setExpFile] = useState(null);
   const [expError, setExpError] = useState("");
   const [expSaving, setExpSaving] = useState(false);
+  const [prefillCategory, setPrefillCategory] = useState(null);
 
   useEffect(() => {
     if (role === "employer") {
@@ -3872,9 +3923,11 @@ const CorporatePage = ({ onBack, session }) => {
   }, [role]);
 
   const handleSelectPkg = async (pkg) => {
+    if (selectedPkg?.id === pkg.id) { setSelectedPkg(null); return; }
     setSelectedPkg(pkg);
     const exps = await getPackageExpenses(pkg.id);
     setPkgExpenses(exps);
+    setPkgExpFilter("all");
   };
 
   const handleCreatePkg = async () => {
@@ -3905,7 +3958,7 @@ const CorporatePage = ({ onBack, session }) => {
     const { data, error } = await logExpense(pkgId, parseFloat(expAmount), expCategory, expDesc.trim(), expFile);
     if (error) { setExpError(error); setExpSaving(false); return; }
     setMyExpenses(e => [data, ...e]);
-    setShowLogExp(false); setExpAmount(""); setExpDesc(""); setExpFile(null);
+    setShowLogExp(false); setExpAmount(""); setExpDesc(""); setExpFile(null); setPrefillCategory(null);
     setExpSaving(false);
   };
 
@@ -3914,14 +3967,29 @@ const CorporatePage = ({ onBack, session }) => {
     setPkgExpenses(e => e.map(x => x.id === expId ? { ...x, status } : x));
   };
 
+  const openLogWithCategory = (cat) => {
+    setPrefillCategory(cat); setExpCategory(cat); setShowLogExp(true);
+    setTimeout(() => document.getElementById("exp-amount-input")?.focus(), 100);
+  };
+
+  // ── Employee computed
   const totalSpent = myExpenses.reduce((s, e) => s + parseFloat(e.amount), 0);
   const stipend = linkedPkg ? parseFloat(linkedPkg.employer_packages.stipend_amount) : 0;
   const remaining = Math.max(0, stipend - totalSpent);
   const pct = stipend > 0 ? Math.min(100, (totalSpent / stipend) * 100) : 0;
+  const pendingCount = myExpenses.filter(e => e.status === "pending").length;
+  const approvedCount = myExpenses.filter(e => e.status === "approved").length;
+  const flaggedCount = myExpenses.filter(e => e.status === "flagged").length;
+
+  // ── Employer computed
+  const totalAllocated = packages.reduce((s, p) => s + parseFloat(p.stipend_amount), 0);
+  const filteredPkgExps = pkgExpFilter === "all" ? pkgExpenses : pkgExpenses.filter(e => e.status === pkgExpFilter);
+  const pkgPendingCount = pkgExpenses.filter(e => e.status === "pending").length;
+  const pkgTotalSpent = pkgExpenses.reduce((s, e) => s + parseFloat(e.amount), 0);
 
   const inputStyle = { width: "100%", background: "#111", border: "1px solid #2a2a3a", color: "#fff", padding: "10px 12px", fontFamily: "Georgia,serif", fontSize: "13px", boxSizing: "border-box", outline: "none" };
   const labelStyle = { fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px", display: "block" };
-  const cardStyle = { background: "#0d1117", border: "1px solid #1e2130", padding: "18px 20px", marginBottom: "12px" };
+  const cardStyle = { background: "#0d1117", border: "1px solid #1e2130", padding: "20px 24px", marginBottom: "12px" };
 
   if (!session) return (
     <div style={{ minHeight: "100vh", background: "#08080f", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px" }}>
@@ -3936,33 +4004,50 @@ const CorporatePage = ({ onBack, session }) => {
 
   return (
     <div style={{ minHeight: "100vh", background: "#08080f", opacity: mounted ? 1 : 0, transition: "opacity 0.4s ease", paddingBottom: "60px" }}>
+
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #1a1a2a", padding: "32px 40px 24px" }}>
-        <button onClick={onBack} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px", padding: 0, marginBottom: "20px" }}>← Back</button>
+      <div style={{ borderBottom: "1px solid #1a1a2a", padding: "28px 40px 22px" }}>
+        <button onClick={onBack} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", padding: 0, marginBottom: "16px" }}>← Back</button>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={{ fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase", color: "#4A7FB5", marginBottom: "6px" }}>Corporate Relocation</div>
-            <div style={{ fontFamily: "Georgia,serif", fontSize: "26px", color: "#fff", fontWeight: 400 }}>Relocation Platform</div>
+            <div style={{ fontSize: "10px", letterSpacing: "4px", textTransform: "uppercase", color: "#4A7FB5", marginBottom: "4px" }}>Corporate Relocation</div>
+            <div style={{ fontFamily: "Georgia,serif", fontSize: "24px", color: "#fff" }}>Relocation Platform</div>
           </div>
-          {/* Role toggle */}
-          <div style={{ display: "flex", background: "#0d1117", border: "1px solid #1e2130", borderRadius: "2px", overflow: "hidden" }}>
+          <div style={{ display: "flex", background: "#0d1117", border: "1px solid #1e2130", overflow: "hidden" }}>
             {["employee", "employer"].map(r => (
               <button key={r} onClick={() => setRole(r)}
-                style={{ padding: "8px 22px", background: role === r ? "#4A7FB5" : "transparent", border: "none", color: role === r ? "#fff" : "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px", textTransform: "capitalize", transition: "all 0.2s" }}>
-                {r === "employee" ? "Employee" : "Employer"}
+                style={{ padding: "8px 24px", background: role === r ? "#4A7FB5" : "transparent", border: "none", color: role === r ? "#fff" : "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px", transition: "all 0.2s" }}>
+                {r === "employee" ? "👤 Employee" : "🏢 Employer"}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "32px 40px" }}>
+      <div style={{ maxWidth: "920px", margin: "0 auto", padding: "32px 40px" }}>
 
-        {/* ── EMPLOYER VIEW ── */}
+        {/* ════════════════ EMPLOYER VIEW ════════════════ */}
         {role === "employer" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <div style={{ fontFamily: "Georgia,serif", fontSize: "16px", color: "rgba(255,255,255,0.7)" }}>Relocation Packages</div>
+            {/* Summary stats */}
+            {packages.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "12px", marginBottom: "28px" }}>
+                {[
+                  { label: "Packages", value: packages.length, color: "#fff" },
+                  { label: "Total Allocated", value: `$${totalAllocated.toLocaleString()}`, color: "#4A7FB5" },
+                  { label: "Employees", value: packages.length, color: "#7BAFD4" },
+                  { label: "Pending Reviews", value: 0, color: "#f5a623" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: "#0d1117", border: "1px solid #1e2130", padding: "16px 18px" }}>
+                    <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "6px" }}>{label}</div>
+                    <div style={{ fontFamily: "Georgia,serif", fontSize: "20px", color }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "rgba(255,255,255,0.6)" }}>Relocation Packages</div>
               <button onClick={() => { setShowCreatePkg(true); setPkgError(""); }}
                 style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "9px 20px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px" }}>
                 + New Package
@@ -3976,8 +4061,8 @@ const CorporatePage = ({ onBack, session }) => {
                 {pkgError && <div style={{ color: "#f44336", fontSize: "12px", marginBottom: "12px", background: "#f4433611", padding: "8px 12px" }}>{pkgError}</div>}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
                   <div>
-                    <label style={labelStyle}>Company / Employee Name</label>
-                    <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="Acme Corp — Jane Smith" style={inputStyle} />
+                    <label style={labelStyle}>Employee / Label</label>
+                    <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="Jane Smith — Engineering" style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Stipend Amount ($)</label>
@@ -3985,8 +4070,8 @@ const CorporatePage = ({ onBack, session }) => {
                   </div>
                 </div>
                 <div style={{ marginBottom: "18px" }}>
-                  <label style={labelStyle}>Notes (optional)</label>
-                  <input value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Move-by date, destination city, etc." style={inputStyle} />
+                  <label style={labelStyle}>Notes — destination, move date, etc. (optional)</label>
+                  <input value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Moving to Austin by June 1" style={inputStyle} />
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button onClick={handleCreatePkg} disabled={pkgSaving}
@@ -4001,170 +4086,286 @@ const CorporatePage = ({ onBack, session }) => {
               </div>
             )}
 
-            {pkgLoading && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", padding: "20px 0" }}>Loading packages…</div>}
+            {pkgLoading && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", padding: "20px 0" }}>Loading…</div>}
 
             {!pkgLoading && packages.length === 0 && !showCreatePkg && (
-              <div style={{ textAlign: "center", padding: "60px 20px", color: "rgba(255,255,255,0.25)", fontFamily: "Georgia,serif" }}>
-                <div style={{ fontSize: "32px", marginBottom: "12px" }}>📦</div>
-                <div style={{ fontSize: "14px" }}>No relocation packages yet.</div>
-                <div style={{ fontSize: "12px", marginTop: "6px" }}>Create one and share the code with the employee you're relocating.</div>
+              <div style={{ textAlign: "center", padding: "70px 20px", color: "rgba(255,255,255,0.2)", fontFamily: "Georgia,serif", border: "1px dashed #1e2130" }}>
+                <div style={{ fontSize: "36px", marginBottom: "14px" }}>📦</div>
+                <div style={{ fontSize: "15px", marginBottom: "8px" }}>No relocation packages yet</div>
+                <div style={{ fontSize: "12px", maxWidth: "320px", margin: "0 auto", lineHeight: "1.7" }}>Create a package for each employee you're relocating. They'll get a code to link their account and start logging expenses.</div>
               </div>
             )}
 
-            {packages.map(pkg => (
-              <div key={pkg.id}>
-                <div style={{ ...cardStyle, cursor: "pointer" }} onClick={() => setSelectedPkg(selectedPkg?.id === pkg.id ? null : null) || handleSelectPkg(pkg)}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
-                    <div>
-                      <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff", marginBottom: "4px" }}>{pkg.company_name}</div>
-                      {pkg.notes && <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", marginBottom: "8px" }}>{pkg.notes}</div>}
-                      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                        <div>
-                          <span style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Stipend </span>
-                          <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#4A7FB5" }}>${parseFloat(pkg.stipend_amount).toLocaleString()}</span>
+            {packages.map(pkg => {
+              const isOpen = selectedPkg?.id === pkg.id;
+              const spent = isOpen ? pkgTotalSpent : 0;
+              const pctUsed = isOpen ? Math.min(100, (pkgTotalSpent / parseFloat(pkg.stipend_amount)) * 100) : 0;
+              return (
+                <div key={pkg.id} style={{ marginBottom: "4px" }}>
+                  <div style={{ ...cardStyle, cursor: "pointer", marginBottom: 0, borderBottom: isOpen ? "none" : "1px solid #1e2130", transition: "background 0.15s" }}
+                    onClick={() => handleSelectPkg(pkg)}
+                    onMouseEnter={e => e.currentTarget.style.background="#0f1520"}
+                    onMouseLeave={e => e.currentTarget.style.background="#0d1117"}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                          <div style={{ fontFamily: "Georgia,serif", fontSize: "16px", color: "#fff" }}>{pkg.company_name}</div>
+                          {isOpen && pkgPendingCount > 0 && (
+                            <span style={{ fontSize: "10px", background: "#f5a62322", color: "#f5a623", border: "1px solid #f5a62344", padding: "2px 8px" }}>{pkgPendingCount} pending</span>
+                          )}
                         </div>
-                        <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)" }}>
-                          Created {new Date(pkg.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "4px" }}>Employee Code</div>
-                      <div style={{ fontFamily: "Georgia,serif", fontSize: "22px", letterSpacing: "6px", color: "#7BAFD4", background: "#0a0f1a", padding: "6px 16px", border: "1px solid #1e2a3a", display: "inline-block" }}>{pkg.code}</div>
-                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", marginTop: "4px" }}>Share with employee</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expanded expense review */}
-                {selectedPkg?.id === pkg.id && (
-                  <div style={{ background: "#0a0c14", border: "1px solid #1a1a2a", borderTop: "none", padding: "20px", marginBottom: "12px" }}>
-                    <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", color: "rgba(255,255,255,0.5)", marginBottom: "16px", letterSpacing: "1px", textTransform: "uppercase", fontSize: "10px" }}>Employee Expenses</div>
-                    {pkgExpenses.length === 0 && <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px" }}>No expenses logged yet.</div>}
-                    {pkgExpenses.map(exp => (
-                      <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #1a1a2a", gap: "12px", flexWrap: "wrap" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "3px" }}>
-                            <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff" }}>${parseFloat(exp.amount).toLocaleString()}</span>
-                            <span style={{ fontSize: "10px", padding: "2px 8px", background: statusColor(exp.status) + "22", color: statusColor(exp.status), border: `1px solid ${statusColor(exp.status)}44` }}>{statusLabel(exp.status)}</span>
+                        {pkg.notes && <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginBottom: "10px" }}>{pkg.notes}</div>}
+                        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                          <div>
+                            <span style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>Stipend </span>
+                            <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#4A7FB5" }}>${parseFloat(pkg.stipend_amount).toLocaleString()}</span>
                           </div>
-                          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>{exp.category}{exp.description ? ` — ${exp.description}` : ""}</div>
-                          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginTop: "2px" }}>{new Date(exp.created_at).toLocaleDateString()}</div>
+                          {isOpen && pkgExpenses.length > 0 && (
+                            <div>
+                              <span style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>Spent </span>
+                              <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#f5a623" }}>${pkgTotalSpent.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", alignSelf: "flex-end" }}>
+                            {new Date(pkg.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                          {exp.receipt_url && (
-                            <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
-                              style={{ fontSize: "11px", color: "#4A7FB5", textDecoration: "none", padding: "4px 10px", border: "1px solid #4A7FB533" }}>
-                              View Receipt
-                            </a>
-                          )}
-                          {exp.status !== "approved" && (
-                            <button onClick={() => handleStatusChange(exp.id, "approved")}
-                              style={{ background: "#4caf5022", border: "1px solid #4caf5044", color: "#4caf50", padding: "4px 10px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
-                              Approve
-                            </button>
-                          )}
-                          {exp.status !== "flagged" && (
-                            <button onClick={() => handleStatusChange(exp.id, "flagged")}
-                              style={{ background: "#f4433622", border: "1px solid #f4433644", color: "#f44336", padding: "4px 10px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
-                              Flag
-                            </button>
-                          )}
-                        </div>
+                        {isOpen && pkgExpenses.length > 0 && (
+                          <div style={{ marginTop: "10px" }}>
+                            <div style={{ height: "4px", background: "#1a1a2a", borderRadius: "2px", overflow: "hidden" }}>
+                              <div style={{ width: `${pctUsed}%`, height: "100%", background: pctUsed > 90 ? "#f44336" : pctUsed > 70 ? "#f5a623" : "#4A7FB5", borderRadius: "2px" }} />
+                            </div>
+                            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", marginTop: "4px" }}>{pctUsed.toFixed(0)}% used</div>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                    {pkgExpenses.length > 0 && (
-                      <div style={{ marginTop: "14px", display: "flex", justifyContent: "flex-end", gap: "24px" }}>
-                        <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
-                          Total spent: <span style={{ color: "#fff", fontFamily: "Georgia,serif" }}>${pkgExpenses.reduce((s,e) => s + parseFloat(e.amount), 0).toLocaleString()}</span>
-                        </div>
-                        <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>
-                          Remaining: <span style={{ color: "#4A7FB5", fontFamily: "Georgia,serif" }}>${Math.max(0, parseFloat(pkg.stipend_amount) - pkgExpenses.reduce((s,e) => s + parseFloat(e.amount), 0)).toLocaleString()}</span>
-                        </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "4px" }}>Employee Code</div>
+                        <div style={{ fontFamily: "Georgia,serif", fontSize: "20px", letterSpacing: "6px", color: "#7BAFD4", background: "#0a0f1a", padding: "6px 14px", border: "1px solid #1e2a3a", display: "inline-block" }}>{pkg.code}</div>
+                        <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", marginTop: "4px" }}>Share with employee</div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Expanded detail */}
+                  {isOpen && (
+                    <div style={{ background: "#080c14", border: "1px solid #1e2130", borderTop: "none", padding: "20px 24px", marginBottom: "12px" }}>
+                      {/* Filter + export bar */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {["all","pending","approved","flagged"].map(f => (
+                            <button key={f} onClick={() => setPkgExpFilter(f)}
+                              style={{ background: pkgExpFilter === f ? "#1e2a3a" : "transparent", border: `1px solid ${pkgExpFilter === f ? "#4A7FB5" : "#1e2130"}`, color: pkgExpFilter === f ? "#7BAFD4" : "rgba(255,255,255,0.3)", padding: "4px 12px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px", textTransform: "capitalize" }}>
+                              {f} {f !== "all" && pkgExpenses.filter(e => e.status === f).length > 0 ? `(${pkgExpenses.filter(e => e.status === f).length})` : ""}
+                            </button>
+                          ))}
+                        </div>
+                        {pkgExpenses.length > 0 && (
+                          <button onClick={() => exportCSV(pkgExpenses, pkg.company_name)}
+                            style={{ background: "transparent", border: "1px solid #1e2130", color: "rgba(255,255,255,0.4)", padding: "4px 14px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
+                            ↓ Export CSV
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Category breakdown */}
+                      {pkgExpenses.length > 0 && (
+                        <CategoryBar expenses={pkgExpenses} max={parseFloat(pkg.stipend_amount)} />
+                      )}
+
+                      {/* Expense rows */}
+                      <div style={{ marginTop: "20px" }}>
+                        <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", marginBottom: "12px" }}>
+                          {filteredPkgExps.length === 0 ? "No expenses" : `${filteredPkgExps.length} expense${filteredPkgExps.length !== 1 ? "s" : ""}`}
+                        </div>
+                        {filteredPkgExps.map(exp => (
+                          <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #0f1520", gap: "12px", flexWrap: "wrap" }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "3px" }}>
+                                <span style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff" }}>${parseFloat(exp.amount).toLocaleString()}</span>
+                                <span style={{ fontSize: "10px", padding: "2px 8px", background: statusColor(exp.status) + "22", color: statusColor(exp.status), border: `1px solid ${statusColor(exp.status)}44` }}>{statusLabel(exp.status)}</span>
+                              </div>
+                              <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>{exp.category}{exp.description ? ` — ${exp.description}` : ""}</div>
+                              <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginTop: "2px" }}>{new Date(exp.created_at).toLocaleDateString()}</div>
+                            </div>
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+                              {exp.receipt_url && (
+                                <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
+                                  style={{ fontSize: "11px", color: "#4A7FB5", textDecoration: "none", padding: "4px 10px", border: "1px solid #4A7FB533" }}>
+                                  Receipt
+                                </a>
+                              )}
+                              {exp.status !== "approved" && (
+                                <button onClick={() => handleStatusChange(exp.id, "approved")}
+                                  style={{ background: "#4caf5018", border: "1px solid #4caf5044", color: "#4caf50", padding: "4px 12px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
+                                  ✓ Approve
+                                </button>
+                              )}
+                              {exp.status !== "flagged" && (
+                                <button onClick={() => handleStatusChange(exp.id, "flagged")}
+                                  style={{ background: "#f4433618", border: "1px solid #f4433644", color: "#f44336", padding: "4px 12px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
+                                  ⚑ Flag
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Package totals */}
+                      {pkgExpenses.length > 0 && (
+                        <div style={{ marginTop: "16px", display: "flex", gap: "24px", justifyContent: "flex-end", paddingTop: "14px", borderTop: "1px solid #1a1a2a" }}>
+                          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>Approved: <span style={{ color: "#4caf50", fontFamily: "Georgia,serif" }}>${pkgExpenses.filter(e=>e.status==="approved").reduce((s,e)=>s+parseFloat(e.amount),0).toLocaleString()}</span></div>
+                          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>Total logged: <span style={{ color: "#fff", fontFamily: "Georgia,serif" }}>${pkgTotalSpent.toLocaleString()}</span></div>
+                          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)" }}>Remaining: <span style={{ color: "#4A7FB5", fontFamily: "Georgia,serif" }}>${Math.max(0, parseFloat(pkg.stipend_amount) - pkgTotalSpent).toLocaleString()}</span></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* ── EMPLOYEE VIEW ── */}
+        {/* ════════════════ EMPLOYEE VIEW ════════════════ */}
         {role === "employee" && (
           <div>
             {empLoading && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "13px", padding: "20px 0" }}>Loading…</div>}
 
+            {/* Enter code */}
             {!empLoading && !linkedPkg && (
-              <div style={{ maxWidth: "440px" }}>
-                <div style={{ fontFamily: "Georgia,serif", fontSize: "20px", color: "#fff", marginBottom: "8px" }}>Enter your employer code</div>
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.7", marginBottom: "28px" }}>Your employer will provide a 6-character code when your relocation package is set up.</p>
-                {linkError && <div style={{ color: "#f44336", fontSize: "12px", marginBottom: "12px", background: "#f4433611", padding: "8px 12px" }}>{linkError}</div>}
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={labelStyle}>Your Name</label>
-                  <input value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Jane Smith" style={inputStyle} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px", alignItems: "start" }}>
+                <div>
+                  <div style={{ fontFamily: "Georgia,serif", fontSize: "20px", color: "#fff", marginBottom: "8px" }}>Enter your employer code</div>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "13px", lineHeight: "1.8", marginBottom: "28px" }}>Your HR or mobility team will give you a 6-character code when your relocation package is set up.</p>
+                  {linkError && <div style={{ color: "#f44336", fontSize: "12px", marginBottom: "12px", background: "#f4433611", padding: "8px 12px" }}>{linkError}</div>}
+                  <div style={{ marginBottom: "14px" }}>
+                    <label style={labelStyle}>Your Name</label>
+                    <input value={nameInput} onChange={e => setNameInput(e.target.value)} placeholder="Jane Smith" style={inputStyle} />
+                  </div>
+                  <div style={{ marginBottom: "24px" }}>
+                    <label style={labelStyle}>Employer Code</label>
+                    <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="ABC123" maxLength={6}
+                      style={{ ...inputStyle, letterSpacing: "8px", fontSize: "20px", textAlign: "center" }} />
+                  </div>
+                  <button onClick={handleLink} disabled={linking}
+                    style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "12px 28px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "13px", letterSpacing: "1px", opacity: linking ? 0.6 : 1 }}>
+                    {linking ? "Linking…" : "Link to Package →"}
+                  </button>
                 </div>
-                <div style={{ marginBottom: "20px" }}>
-                  <label style={labelStyle}>Employer Code</label>
-                  <input value={codeInput} onChange={e => setCodeInput(e.target.value.toUpperCase())} placeholder="ABC123" maxLength={6}
-                    style={{ ...inputStyle, letterSpacing: "6px", fontSize: "18px", fontFamily: "Georgia,serif" }} />
+                <div style={{ background: "#0d1117", border: "1px solid #1e2130", padding: "24px" }}>
+                  <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "16px" }}>What you can do</div>
+                  {[
+                    { icon: "💰", title: "Track your stipend", desc: "See exactly how much you have left and how it's being spent." },
+                    { icon: "📋", title: "Log expenses", desc: "Submit moving costs, flights, deposits, and more." },
+                    { icon: "🧾", title: "Upload receipts", desc: "Attach receipts so your employer can review and approve." },
+                    { icon: "📊", title: "See breakdowns", desc: "Visual category breakdown of where your budget is going." },
+                  ].map(({ icon, title, desc }) => (
+                    <div key={title} style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                      <div style={{ fontSize: "18px", flexShrink: 0, marginTop: "1px" }}>{icon}</div>
+                      <div>
+                        <div style={{ fontFamily: "Georgia,serif", fontSize: "13px", color: "#fff", marginBottom: "2px" }}>{title}</div>
+                        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", lineHeight: "1.6" }}>{desc}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <button onClick={handleLink} disabled={linking}
-                  style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "12px 28px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "13px", letterSpacing: "1px", opacity: linking ? 0.6 : 1 }}>
-                  {linking ? "Linking…" : "Link to Package →"}
-                </button>
               </div>
             )}
 
+            {/* Linked — dashboard */}
             {!empLoading && linkedPkg && (
               <div>
-                {/* Stipend summary */}
-                <div style={{ ...cardStyle, border: "1px solid #4A7FB533", marginBottom: "24px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
+                {/* Stipend hero card */}
+                <div style={{ ...cardStyle, border: "1px solid #4A7FB533", marginBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
                     <div>
-                      <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "4px" }}>Relocation Package</div>
-                      <div style={{ fontFamily: "Georgia,serif", fontSize: "18px", color: "#fff" }}>{linkedPkg.employer_packages.company_name}</div>
+                      <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "4px" }}>Relocation Package</div>
+                      <div style={{ fontFamily: "Georgia,serif", fontSize: "20px", color: "#fff" }}>{linkedPkg.employer_packages.company_name}</div>
                       {linkedPkg.employer_packages.notes && <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", marginTop: "4px" }}>{linkedPkg.employer_packages.notes}</div>}
                     </div>
-                    <button onClick={() => setShowLogExp(true)}
+                    <button onClick={() => { setShowLogExp(true); setPrefillCategory(null); }}
                       style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "10px 22px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", letterSpacing: "1px", whiteSpace: "nowrap" }}>
                       + Log Expense
                     </button>
                   </div>
 
-                  {/* Balance bar */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", marginBottom: "18px" }}>
+                  {/* 3 stat cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "20px" }}>
                     {[
-                      { label: "Total Stipend", value: `$${stipend.toLocaleString()}`, color: "#fff" },
-                      { label: "Spent", value: `$${totalSpent.toLocaleString()}`, color: "#f5a623" },
-                      { label: "Remaining", value: `$${remaining.toLocaleString()}`, color: "#4caf50" },
-                    ].map(({ label, value, color }) => (
-                      <div key={label}>
-                        <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: "4px" }}>{label}</div>
-                        <div style={{ fontFamily: "Georgia,serif", fontSize: "22px", color }}>{value}</div>
+                      { label: "Total Stipend", value: `$${stipend.toLocaleString()}`, color: "#fff", sub: "Allocated by employer" },
+                      { label: "Spent", value: `$${totalSpent.toLocaleString()}`, color: "#f5a623", sub: `${myExpenses.length} expense${myExpenses.length !== 1 ? "s" : ""}` },
+                      { label: "Remaining", value: `$${remaining.toLocaleString()}`, color: remaining < stipend * 0.1 ? "#f44336" : "#4caf50", sub: `${(100 - pct).toFixed(0)}% left` },
+                    ].map(({ label, value, color, sub }) => (
+                      <div key={label} style={{ background: "#080c14", border: "1px solid #1a1a2a", padding: "14px 16px" }}>
+                        <div style={{ fontSize: "9px", letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "6px" }}>{label}</div>
+                        <div style={{ fontFamily: "Georgia,serif", fontSize: "22px", color, marginBottom: "3px" }}>{value}</div>
+                        <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)" }}>{sub}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ height: "6px", background: "#1a1a2a", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: pct > 90 ? "#f44336" : pct > 70 ? "#f5a623" : "#4A7FB5", transition: "width 0.6s ease", borderRadius: "3px" }} />
+
+                  {/* Progress bar */}
+                  <div style={{ height: "8px", background: "#1a1a2a", borderRadius: "4px", overflow: "hidden", marginBottom: "6px" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: pct > 90 ? "#f44336" : pct > 70 ? "#f5a623" : "#4A7FB5", transition: "width 0.8s ease", borderRadius: "4px" }} />
                   </div>
-                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)", marginTop: "6px" }}>{pct.toFixed(0)}% of stipend used</div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.2)" }}>{pct.toFixed(0)}% of stipend used</div>
+                    <div style={{ display: "flex", gap: "16px" }}>
+                      {[
+                        { label: "Pending", count: pendingCount, color: "#f5a623" },
+                        { label: "Approved", count: approvedCount, color: "#4caf50" },
+                        { label: "Flagged", count: flaggedCount, color: "#f44336" },
+                      ].filter(x => x.count > 0).map(({ label, count, color }) => (
+                        <span key={label} style={{ fontSize: "10px", color }}>{count} {label}</span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Log Expense Form */}
+                {/* Suggested expenses */}
+                {myExpenses.length === 0 && (
+                  <div style={{ marginBottom: "24px" }}>
+                    <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "14px" }}>Common Relocation Expenses — click to log</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "10px" }}>
+                      {SUGGESTED_EXPENSES.map(({ category, label, icon, typical }) => (
+                        <div key={label} onClick={() => openLogWithCategory(category)}
+                          style={{ background: "#0d1117", border: "1px solid #1e2130", padding: "14px", cursor: "pointer", transition: "border-color 0.15s" }}
+                          onMouseEnter={e => e.currentTarget.style.borderColor="#4A7FB5"}
+                          onMouseLeave={e => e.currentTarget.style.borderColor="#1e2130"}>
+                          <div style={{ fontSize: "20px", marginBottom: "8px" }}>{icon}</div>
+                          <div style={{ fontFamily: "Georgia,serif", fontSize: "12px", color: "#fff", marginBottom: "4px" }}>{label}</div>
+                          <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.25)" }}>{typical}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Category breakdown */}
+                {myExpenses.length > 0 && (
+                  <div style={{ ...cardStyle, marginBottom: "20px" }}>
+                    <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "4px" }}>Spending Breakdown</div>
+                    <CategoryBar expenses={myExpenses} max={totalSpent} />
+                  </div>
+                )}
+
+                {/* Log Expense form */}
                 {showLogExp && (
                   <div style={{ ...cardStyle, border: "1px solid #4A7FB544", marginBottom: "20px" }}>
-                    <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff", marginBottom: "18px" }}>Log an Expense</div>
+                    <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff", marginBottom: "18px" }}>
+                      Log an Expense {prefillCategory && <span style={{ fontSize: "12px", color: "#4A7FB5", fontFamily: "sans-serif" }}>— {prefillCategory}</span>}
+                    </div>
                     {expError && <div style={{ color: "#f44336", fontSize: "12px", marginBottom: "12px", background: "#f4433611", padding: "8px 12px" }}>{expError}</div>}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
                       <div>
                         <label style={labelStyle}>Amount ($)</label>
-                        <input type="number" value={expAmount} onChange={e => setExpAmount(e.target.value)} placeholder="500.00" style={inputStyle} />
+                        <input id="exp-amount-input" type="number" value={expAmount} onChange={e => setExpAmount(e.target.value)} placeholder="500.00" style={inputStyle} />
                       </div>
                       <div>
                         <label style={labelStyle}>Category</label>
-                        <select value={expCategory} onChange={e => setExpCategory(e.target.value)}
-                          style={{ ...inputStyle, cursor: "pointer" }}>
+                        <select value={expCategory} onChange={e => setExpCategory(e.target.value)} style={{ ...inputStyle, cursor: "pointer" }}>
                           {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
@@ -4174,18 +4375,18 @@ const CorporatePage = ({ onBack, session }) => {
                       <input value={expDesc} onChange={e => setExpDesc(e.target.value)} placeholder="U-Haul rental, 2 days" style={inputStyle} />
                     </div>
                     <div style={{ marginBottom: "20px" }}>
-                      <label style={labelStyle}>Receipt (optional)</label>
+                      <label style={labelStyle}>Receipt — photo or PDF (optional)</label>
                       <input type="file" accept="image/*,.pdf" onChange={e => setExpFile(e.target.files[0])}
                         style={{ ...inputStyle, padding: "8px 12px", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: "12px" }} />
-                      {expFile && <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "4px" }}>{expFile.name}</div>}
+                      {expFile && <div style={{ fontSize: "11px", color: "#4A7FB5", marginTop: "5px" }}>✓ {expFile.name}</div>}
                     </div>
                     <div style={{ display: "flex", gap: "10px" }}>
                       <button onClick={handleLogExpense} disabled={expSaving}
-                        style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "10px 24px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", opacity: expSaving ? 0.6 : 1 }}>
-                        {expSaving ? "Saving…" : "Submit Expense"}
+                        style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "11px 28px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "13px", opacity: expSaving ? 0.6 : 1 }}>
+                        {expSaving ? "Submitting…" : "Submit Expense"}
                       </button>
-                      <button onClick={() => { setShowLogExp(false); setExpError(""); }}
-                        style={{ background: "transparent", border: "1px solid #2a2a3a", color: "rgba(255,255,255,0.4)", padding: "10px 20px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px" }}>
+                      <button onClick={() => { setShowLogExp(false); setExpError(""); setPrefillCategory(null); }}
+                        style={{ background: "transparent", border: "1px solid #2a2a3a", color: "rgba(255,255,255,0.4)", padding: "11px 20px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px" }}>
                         Cancel
                       </button>
                     </div>
@@ -4193,28 +4394,41 @@ const CorporatePage = ({ onBack, session }) => {
                 )}
 
                 {/* Expense history */}
-                <div>
-                  <div style={{ fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: "14px" }}>Expense History</div>
-                  {myExpenses.length === 0 && <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "13px" }}>No expenses logged yet. Hit "+ Log Expense" to get started.</div>}
-                  {myExpenses.map(exp => (
-                    <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid #1a1a2a", gap: "12px", flexWrap: "wrap" }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "3px" }}>
-                          <span style={{ fontFamily: "Georgia,serif", fontSize: "16px", color: "#fff" }}>${parseFloat(exp.amount).toLocaleString()}</span>
-                          <span style={{ fontSize: "10px", padding: "2px 8px", background: statusColor(exp.status) + "22", color: statusColor(exp.status), border: `1px solid ${statusColor(exp.status)}44` }}>{statusLabel(exp.status)}</span>
-                        </div>
-                        <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>{exp.category}{exp.description ? ` — ${exp.description}` : ""}</div>
-                        <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginTop: "2px" }}>{new Date(exp.created_at).toLocaleDateString()}</div>
-                      </div>
-                      {exp.receipt_url && (
-                        <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
-                          style={{ fontSize: "11px", color: "#4A7FB5", textDecoration: "none", padding: "4px 10px", border: "1px solid #4A7FB533" }}>
-                          View Receipt
-                        </a>
-                      )}
+                {myExpenses.length > 0 && (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                      <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>Expense History</div>
+                      <button onClick={() => exportCSV(myExpenses, linkedPkg.employer_packages.company_name)}
+                        style={{ background: "transparent", border: "1px solid #1e2130", color: "rgba(255,255,255,0.35)", padding: "4px 14px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "11px" }}>
+                        ↓ Export CSV
+                      </button>
                     </div>
-                  ))}
-                </div>
+                    {myExpenses.map(exp => (
+                      <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid #1a1a2a", gap: "12px", flexWrap: "wrap" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+                            <span style={{ fontFamily: "Georgia,serif", fontSize: "16px", color: "#fff" }}>${parseFloat(exp.amount).toLocaleString()}</span>
+                            <span style={{ fontSize: "10px", padding: "2px 8px", background: statusColor(exp.status) + "22", color: statusColor(exp.status), border: `1px solid ${statusColor(exp.status)}44` }}>{statusLabel(exp.status)}</span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>{exp.category}{exp.description ? ` — ${exp.description}` : ""}</div>
+                          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.2)", marginTop: "2px" }}>{new Date(exp.created_at).toLocaleDateString()}</div>
+                        </div>
+                        {exp.receipt_url && (
+                          <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer"
+                            style={{ fontSize: "11px", color: "#4A7FB5", textDecoration: "none", padding: "5px 12px", border: "1px solid #4A7FB533" }}>
+                            🧾 Receipt
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {myExpenses.length === 0 && !showLogExp && (
+                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "13px", fontFamily: "Georgia,serif", textAlign: "center", padding: "30px 0" }}>
+                    No expenses logged yet — click a category above or hit "+ Log Expense" to get started.
+                  </div>
+                )}
               </div>
             )}
           </div>
