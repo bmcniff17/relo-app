@@ -3448,16 +3448,28 @@ async function deleteAccount(_token) {
 
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
-async function createEmployerPackage(companyName, stipendAmount, notes = "") {
+async function createEmployerPackage(companyName, stipendAmount, notes = "", employeeEmail = "") {
   if (!supabase) return { error: "Auth not configured" };
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: "Not signed in" };
     const code = generateCode();
     const { data, error } = await supabase.from("employer_packages")
-      .insert({ employer_id: user.id, company_name: companyName, code, stipend_amount: stipendAmount, notes })
+      .insert({ employer_id: user.id, company_name: companyName, code, stipend_amount: stipendAmount, notes, employee_email: employeeEmail })
       .select().single();
     return error ? { error: error.message } : { data };
+  } catch(e) { return { error: e.message }; }
+}
+
+async function sendInviteEmail({ to, employeeName, companyName, code, stipendAmount, notes }) {
+  try {
+    const res = await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "invite", to, employeeName, companyName, code, stipendAmount, notes }),
+    });
+    const data = await res.json();
+    return data.success ? { success: true } : { error: data.error };
   } catch(e) { return { error: e.message }; }
 }
 
@@ -3884,8 +3896,11 @@ const CorporatePage = ({ onBack, session }) => {
   const [newCompany, setNewCompany] = useState("");
   const [newStipend, setNewStipend] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
+  const [newEmployeeName, setNewEmployeeName] = useState("");
   const [pkgError, setPkgError] = useState("");
   const [pkgSaving, setPkgSaving] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [pkgExpenses, setPkgExpenses] = useState([]);
   const [pkgExpFilter, setPkgExpFilter] = useState("all");
@@ -3931,12 +3946,26 @@ const CorporatePage = ({ onBack, session }) => {
   };
 
   const handleCreatePkg = async () => {
-    if (!newCompany.trim() || !newStipend) { setPkgError("Company name and stipend are required."); return; }
-    setPkgSaving(true); setPkgError("");
-    const { data, error } = await createEmployerPackage(newCompany.trim(), parseFloat(newStipend), newNotes.trim());
+    if (!newEmployeeName.trim()) { setPkgError("Employee name is required."); return; }
+    if (!newStipend) { setPkgError("Stipend amount is required."); return; }
+    setPkgSaving(true); setPkgError(""); setInviteSent(false);
+    const label = newCompany.trim() || newEmployeeName.trim();
+    const { data, error } = await createEmployerPackage(label, parseFloat(newStipend), newNotes.trim(), newEmployeeEmail.trim());
     if (error) { setPkgError(error); setPkgSaving(false); return; }
     setPackages(p => [data, ...p]);
-    setShowCreatePkg(false); setNewCompany(""); setNewStipend(""); setNewNotes("");
+    // Send invite email if address provided
+    if (newEmployeeEmail.trim()) {
+      const result = await sendInviteEmail({
+        to: newEmployeeEmail.trim(),
+        employeeName: newEmployeeName.trim(),
+        companyName: session?.user?.email || "Your employer",
+        code: data.code,
+        stipendAmount: parseFloat(newStipend),
+        notes: newNotes.trim(),
+      });
+      if (result.success) setInviteSent(true);
+    }
+    setShowCreatePkg(false); setNewCompany(""); setNewStipend(""); setNewNotes(""); setNewEmployeeEmail(""); setNewEmployeeName("");
     setPkgSaving(false);
   };
 
@@ -4054,31 +4083,51 @@ const CorporatePage = ({ onBack, session }) => {
               </button>
             </div>
 
+            {/* Invite sent confirmation */}
+            {inviteSent && (
+              <div style={{ background: "#4caf5011", border: "1px solid #4caf5033", padding: "12px 18px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#4caf50", fontSize: "16px" }}>✓</span>
+                <span style={{ color: "#4caf50", fontSize: "13px", fontFamily: "Georgia,serif" }}>Invite email sent successfully.</span>
+                <button onClick={() => setInviteSent(false)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", fontSize: "16px" }}>×</button>
+              </div>
+            )}
+
             {/* Create Package Form */}
             {showCreatePkg && (
               <div style={{ ...cardStyle, border: "1px solid #4A7FB544", marginBottom: "20px" }}>
-                <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff", marginBottom: "18px" }}>Create Relocation Package</div>
+                <div style={{ fontFamily: "Georgia,serif", fontSize: "15px", color: "#fff", marginBottom: "6px" }}>Create Relocation Package</div>
+                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", marginBottom: "20px" }}>An invite email will be sent automatically if you provide the employee's email address.</div>
                 {pkgError && <div style={{ color: "#f44336", fontSize: "12px", marginBottom: "12px", background: "#f4433611", padding: "8px 12px" }}>{pkgError}</div>}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
                   <div>
-                    <label style={labelStyle}>Employee / Label</label>
-                    <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="Jane Smith — Engineering" style={inputStyle} />
+                    <label style={labelStyle}>Employee Name *</label>
+                    <input value={newEmployeeName} onChange={e => setNewEmployeeName(e.target.value)} placeholder="Jane Smith" style={inputStyle} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Stipend Amount ($)</label>
-                    <input type="number" value={newStipend} onChange={e => setNewStipend(e.target.value)} placeholder="10000" style={inputStyle} />
+                    <label style={labelStyle}>Employee Email (for invite)</label>
+                    <input type="email" value={newEmployeeEmail} onChange={e => setNewEmployeeEmail(e.target.value)} placeholder="jane@example.com" style={inputStyle} />
                   </div>
                 </div>
-                <div style={{ marginBottom: "18px" }}>
-                  <label style={labelStyle}>Notes — destination, move date, etc. (optional)</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "14px" }}>
+                  <div>
+                    <label style={labelStyle}>Stipend Amount ($) *</label>
+                    <input type="number" value={newStipend} onChange={e => setNewStipend(e.target.value)} placeholder="10000" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Label (team, role, etc.)</label>
+                    <input value={newCompany} onChange={e => setNewCompany(e.target.value)} placeholder="Engineering — Austin" style={inputStyle} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: "20px" }}>
+                  <label style={labelStyle}>Notes — destination, move-by date, etc.</label>
                   <input value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Moving to Austin by June 1" style={inputStyle} />
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                   <button onClick={handleCreatePkg} disabled={pkgSaving}
                     style={{ background: "#4A7FB5", border: "none", color: "#fff", padding: "10px 24px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px", opacity: pkgSaving ? 0.6 : 1 }}>
-                    {pkgSaving ? "Creating…" : "Create & Generate Code"}
+                    {pkgSaving ? "Creating…" : newEmployeeEmail.trim() ? "Create & Send Invite →" : "Create Package"}
                   </button>
-                  <button onClick={() => setShowCreatePkg(false)}
+                  <button onClick={() => { setShowCreatePkg(false); setPkgError(""); }}
                     style={{ background: "transparent", border: "1px solid #2a2a3a", color: "rgba(255,255,255,0.4)", padding: "10px 20px", cursor: "pointer", fontFamily: "Georgia,serif", fontSize: "12px" }}>
                     Cancel
                   </button>
